@@ -5,7 +5,7 @@ Donya Satarvandi, Zaynab Mousavian, Klara Sondén, Jun Wang, María Bueno
 Álvez, Sofia Bergström, Peter Nilsson, Fredrik Edfors, Petter Brodin,
 Mathias Uhlén, Christopher Sundling & Anna Färnert
 
-![](./resources/graphical_abstract.png){width="461"}
+![](./resources/graphical_abstract.png)
 
 ## Abstract
 
