@@ -1,0 +1,912 @@
+---
+  title: "Figure panles for manuscript"
+author: "Julius (MJL)"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Figure Panel
+
+## Figure 1
+
+-   Acute Malaria
+
+```{r Figure1, echo=FALSE, warning=FALSE,out.width='100%', message=FALSE, fig.height=9,dev = c("png","pdf")}
+pdf(paste0(result.dir,"Figure_1.pdf"), width = 6.9, height = 9)#,paper = "a4",colormodel = my_pdf_colormodel) 
+cohort_fig <- ggplot2::ggplot() +
+  ggplot2::annotation_custom(grid::rasterGrob(png::readPNG("../doc/figs_biorender/20240222_MIPCohort_Figure1A_pil.png"),
+                                              width=ggplot2::unit(3.5,"in"),
+                                              height=ggplot2::unit(1.2,"in")),
+                             -Inf, Inf, -Inf, Inf) + theme(rect = element_rect(fill = "transparent"))
+
+layout <- "
+AAAABC
+DDEEEE
+DDEEEE
+FFGGGG
+FFGGGG
+FFHHHH
+FFHHHH
+"
+
+layout <- "
+AAABCD
+EEFFFF
+EEFFFF
+GGHHHH
+GGHHHH
+GGIIII
+GGIIII
+"
+
+## A
+wrap_elements(full = cohort_fig) +
+  ## B  
+  wrap_elements(full = fig1.list$general_sex_age_dist + theme(legend.position = "none") + theme_a4_pdf) +
+  ## C
+  wrap_elements(full = fig1.list$timepoint_sex_perc + theme_a4_pdf + theme(legend.box.spacing = unit(0, "pt")) +
+                                    guides(fill = guide_legend(ncol = 1))) + 
+
+  ## D
+  wrap_elements(full = fig1.list$timepoint_exposure + theme_a4_pdf + theme(legend.box.spacing = unit(0, "pt"),
+                                                                                axis.text.y = element_blank(),
+                                                                                axis.title.y = element_blank()) +
+                  guides(fill = guide_legend(ncol = 1))) + 
+              
+  wrap_elements(full= pca_fig1 + 
+                  theme_a4_pdf + 
+                  theme(legend.position = "top",
+                        legend.box.spacing = unit(0, "pt"),
+                        axis.text = element_blank(),
+                        axis.title = element_text(size=6),
+                        axis.ticks = element_blank(),
+                        panel.grid.major.y = element_blank())) + 
+  ## E
+  wrap_elements(full = dap.acute.volcano + theme_a4_pdf) +
+  
+  ## F
+  wrap_elements(full = grid.grabExpr(draw(acute.npx.top25.hm, merge_legend = TRUE))) +
+  ## G
+  wrap_elements(full = violin_malaria_top10 + theme_a4_pdf) +
+  ## H
+  wrap_elements(full = violin_malaria_top10_down + theme_a4_pdf) +
+  
+  patchwork::plot_layout(design = layout)  &
+  patchwork::plot_annotation(title = "Figure 1") & #
+  patchwork_panel_a4_pdf 
+dev.off()
+```
+
+```{r}
+png("../../../Desktop/Science - Färnert Group/PhD/Thesis/Figures/Study2_Figur1F_volcano.png",width=7,height=7,units="cm",res=300)
+dap.acute.volcano + theme_a4_pdf
+dev.off()
+```
+
+
+```{r Figure1-wo-annotation, fig.height=9, message=FALSE, warning=FALSE, dev= c("png","pdf"), out.width='100%'}
+pdf(paste0(result.dir,"Figure_1_old.pdf"), width = 6.9, height = 9)#,paper = "a4",colormodel = my_pdf_colormodel) 
+
+cohort_fig <- ggplot2::ggplot() +
+  ggplot2::annotation_custom(grid::rasterGrob(png::readPNG("../doc/figs_biorender/20240222_MIPCohort_Figure1A_pil.png"),
+                                              width=ggplot2::unit(4,"in"),
+                                              height=ggplot2::unit(1.2,"in")),
+                             -Inf, Inf, -Inf, Inf) + theme(rect = element_rect(fill = "transparent"))
+
+layout <- "
+AAAABC
+DDEEEE
+DDEEEE
+FFGGGG
+FFGGGG
+FFHHHH
+FFHHHH
+"
+
+## A
+wrap_elements(full = cohort_fig) +
+  ## B  
+  wrap_elements(full = fig1.list$general_sex_age_dist + theme(legend.position = "none") + theme_a4_pdf) +
+  ## C
+  wrap_elements(full = fig1.list$timepoint_sex_perc + theme_a4_pdf + theme(legend.box.spacing = unit(0, "pt"))) +
+  ## D
+  wrap_elements(full= pca_fig1 + 
+                  theme_a4_pdf + 
+                  theme(legend.position = "top",
+                        legend.box.spacing = unit(0, "pt"),
+                        axis.text = element_blank(),
+                        axis.title = element_text(size=6),
+                        axis.ticks = element_blank(),
+                        panel.grid.major.y = element_blank())) + 
+  ## E
+  wrap_elements(full = dap.acute.volcano + theme_a4_pdf) +
+  
+  ## F
+  wrap_elements(full = grid.grabExpr(draw(acute.npx.top25.hm, merge_legend = TRUE))) +
+  ## G
+  wrap_elements(full = violin_malaria_top10 + theme_a4_pdf) +
+  ## H
+  wrap_elements(full = violin_malaria_top10_down + theme_a4_pdf) +
+  
+  patchwork::plot_layout(design = layout)  &
+  patchwork::plot_annotation(title = "Figure 1") & #
+  patchwork_panel_a4_pdf 
+dev.off()
+```
+
+## Related to Figure 1 - S1
+
+-   effect on previous exposure on acute malaria
+
+```{r Figure1-S0, echo=FALSE, warning=FALSE,out.width='100%', message=FALSE, fig.height=9,dev = c("png","pdf")}
+pdf(paste0(result.dir,"Figure_1_S1.pdf"), width = 6.9, height = 6)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAA
+BBC
+DDD
+"
+layout <- "
+AABB
+CCBB
+DDDD
+"
+
+
+
+## A
+wrap_elements(full = grid.grabExpr(draw(sample_overlap_hm)))  + 
+  ## B
+  wrap_elements(full = acute_exposure_volcano + theme_a4_pdf +
+                  theme(legend.position = c(0.8, 0.4),#"right",
+                        axis.title = element_text(size=6),
+                        axis.text = element_text(size=6),
+                        axis.text.y = element_blank(),
+                        panel.grid.major = element_blank(), 
+                        panel.grid.minor = element_blank(),
+                        panel.background = element_blank(),
+                        axis.line = element_line(colour = "black"))) +# & theme(legend.box.spacing = unit(0, "pt"))) +
+  ## C
+  #acute_exposure_significant +
+  ## D
+  plot(euler(list("acute" = lme_res_padj %>% filter(FDR==T) %>% pull(Assay),
+                  "exposure"= lme_res_expo %>% filter(FDR==T) %>% pull(Assay))),
+       fills = c("#C51B7D",
+                 "white"),
+       quantities = TRUE,
+       lty = 1,#1:3,
+       fontsize=1,
+       labels = list(fontsize=5),
+       shape = "ellipse",adjust_labels = T) + 
+  ## E
+  acute_exposure_significant +
+  #intersect_focus + theme_a4_pdf + 
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 1 - Related to Figure 1") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+```{r}
+acute_exposure_significant
+```
+
+
+## Related to Figure 1 - S2
+
+-   Plasma proteomics after P.falciparum malaria
+
+```{r Figure1-S1, echo=FALSE, warning=FALSE,out.width='100%', message=FALSE, fig.height=9,dev = c("png","pdf")}
+pdf(paste0(result.dir,"Figure_1_S2.pdf"), width = 6.9, height = 9)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAAAAAAADDDDD
+BBBBBBBBEEEEE
+BBBBBBBBEEEEE
+BBBBBBBBFFFFF
+"
+
+## A
+wrap_elements(full = data.aov.plot + theme_a4_pdf) + 
+  ## B
+  wrap_elements(full = anova.panel & theme_a4_pdf & theme(legend.box.spacing = unit(0, "pt"))) +
+  ## C
+  wrap_elements(full = venn.DAP.acute.d10 + theme(strip.text = element_text(size=2),  plot.title.position = "plot")) + 
+  ## D
+  wrap_elements(full = d10_malaria_volcano + theme_a4_pdf) +
+  ## E
+  wrap_elements(full = acute_d10_comp +theme(legend.position="top",
+                                             legend.box.spacing = unit(0, "pt"))) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 2 - Related to Figure 1") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Related to Figure 1 - S3
+
+-   Differential abundant proteins in acute malaria
+
+```{r Figure1-S2, echo=FALSE, warning=FALSE,out.width='100%', message=FALSE, fig.height=6,dev = c("png","pdf")}
+pdf(paste0(result.dir,"Figure_1_S3.pdf"), width = 6.9, height = 6)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+kegg.hsa04060_fig <- ggplot2::ggplot() +
+  ggplot2::annotation_custom(grid::rasterGrob(png::readPNG("hsa04060.pathview.png")))#,
+
+layout <- "
+AAAAAA
+BBBBBB
+BBBBBB
+BBBBBB
+BBBBBB
+"
+## A
+wrap_elements(full = 
+                cp.kegg.acutefc1 + theme_a4_pdf + ggtitle("KEGG pathway analysis") + 
+                theme(axis.ticks.x = element_blank(),
+                      text = element_text(size=6)) ) +
+  ## B
+  wrap_elements(full= kegg.hsa04060_fig ) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 3 - Related to Figure 1") & 
+  patchwork_panel_a4_pdf 
+dev.off()
+```
+
+## Figure 2
+
+-   Mapping of proteins to resource (HPA)
+
+```{r Figure2, echo=FALSE, warning=FALSE,out.width='100%', message=FALSE, fig.height=5, dev = c("png","pdf")}
+pdf(paste0(result.dir,"Figure_2.pdf"), width = 6.9, height = 5.5)#, paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAAACC
+BBBBCC
+BBBBCC
+"
+
+## A
+wrap_elements(full = hpa.protein.origin.overview + 
+                theme_a4_pdf +
+                theme(legend.position = "none",
+                      legend.justification = c(1, 0),
+                      panel.grid.major.y = element_blank()) + 
+                guides(fill=guide_legend(ncol=2,byrow=TRUE)))  +
+  ## B
+  
+  wrap_elements(full = hpa.function.bubbleplot + 
+                  theme_a4_pdf + theme(legend.position="none",
+                                       axis.text.x = element_text(angle=0))) + 
+  ## C
+  wrap_elements(full= acute_malaria_hpa_source + theme_a4_pdf + theme(legend.position="none")) + 
+  
+  patchwork::plot_layout(design = layout,guides = "collect") +
+  patchwork::plot_annotation(title = "Figure 2") & 
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+
+
+## Related to Figure 2 - S4
+
+-   potential tissue leakage - Resource
+
+```{r Figure2-S3,fig.height=7,dev = c("png","pdf"), out.width='100%'}
+
+pdf(paste0(result.dir,"Figure_2_S4.pdf"), width = 6.9, height = 7)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAACC
+AAACC
+BBBCC
+BBBCC
+DDDDD
+"
+
+## A
+wrap_elements(full = dap.origin.w.tl + theme_a4_pdf) +
+  ## B
+  wrap_elements(full = alluvial_proteinorigin + theme_a4_pdf + theme(text = element_text(size=6))) +
+  ## C
+  grid.grabExpr(draw(hm.tissue.leakage)) +#) + 
+  ## D
+  wrap_elements(full = tissue.leakage.violine + theme_a4_pdf + theme(legend.position = "none")) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 4 - Related to Figure 2") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Related to Figure 2 - S5
+
+-   Secreted to blood and extracellular - Resource
+
+```{r Figure2-S4,fig.height=10,dev = c("png","pdf"), out.width='100%'}
+pdf(paste0(result.dir,"Figure_2_S5.pdf"), width = 6.9, height = 10.5)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAABBB
+AAABBB
+AAABBB
+AAACCC
+AAACCC
+AAADDD
+AAADDD
+"
+
+## A
+wrap_elements(full = acute_malaria_hpa_function_facet.list$`Secreted to blood`) +
+  ## B
+  wrap_elements(full = acute_malaria_hpa_function_facet.list$`Intracellular and membrane`) +
+  ## C
+  wrap_elements(full = acute_malaria_hpa_function_facet.list$`Secreted in other tissues`) +
+  ## D
+  wrap_elements(full = acute_malaria_hpa_function_facet.list$`Secreted to extracellular matrix`) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 5 - Related to Figure 2") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Figure 3
+
+-   Potential source and target for soluble proteins
+
+```{r Figure3, fig.height=9, dev = c("png","pdf")}
+pdf(paste0(result.dir,"Figure_3.pdf"),width = 6.9, height = 9)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAABBBBCCCC
+AAABBBBCCCC
+DDDDDDDDDDD
+DDDDDDDDDDD
+DDDDDDDDDDD
+DDDDDDDDDDD
+DDDDDDDDDDD
+EEEEEFFFFFF
+EEEEEFFFFFF
+EEEEEFFFFFF
+EEEEEFFFFFF
+EEEEEFFFFFF
+"
+
+## A
+wrap_elements(full= rhapsody_umap_ggplot_l1 + coord_fixed(ratio = 1)) + 
+  ## B
+  wrap_elements(full= per_sample_perc_l1 +
+                  theme_a4_pdf + theme(legend.position = "top",
+                                       legend.box.spacing = unit(0, "pt"),
+                                       axis.text.x = element_text(size = 4),
+                                       strip.text.x = element_text(size=4))) +
+  ## C
+  wrap_elements(full= rhapsody_umap_ggplot_l2 + coord_fixed(ratio = 1)) + 
+  ## D
+  wrap_elements(full = grid.grabExpr(draw(pbmc_l2_acute_hm.wide, 
+                                          merge_legends = TRUE,
+                                          auto_adjust = T,
+                                          heatmap_legend_side="right",
+                                          padding = unit(c(1, 1, 1, 1), "mm")))) +
+  ## E
+  wrap_elements(full= ligand_receptor_nw) +
+  ## F
+  wrap_elements(full = grid.grabExpr(draw(pbmc_l2_acute_cellphonedb_hm.wide,
+                                          merge_legends = TRUE,
+                                          heatmap_legend_side="right")) ) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Figure 3") & 
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Related to Figure 3 - S6
+
+-   Rhapsody scRNA/Ab-Seq of PBMCs from malaria patients
+
+```{r Figure3-S5, warning=FALSE,out.width='100%', message=FALSE, fig.height=9,dev = c("png","pdf")}
+
+pdf(paste0(result.dir,"Figure_3_S6.pdf"), width = 6.9, height = 9)#,paper = "a4",colormodel = my_pdf_colormodel)
+
+layout <- "
+AAABBBBCCC
+DDDDDDDDDD
+EEEEEEEEEE
+EEEEEEEEEE
+FFFGGGGGGG
+FFFGGGGGGG
+"
+## A - cells per sample
+wrap_elements(full= rhapsody_cells_per_sample + 
+                theme(legend.position = "top",
+                      axis.text.y = element_blank(),
+                      legend.box.spacing = unit(0, "pt"),
+                      axis.ticks.x = element_line()) + theme_a4_pdf) + 
+  ## B 
+  wrap_elements(full = rhapsody_umap_ggplot_int_orig.ident + 
+                  theme_a4_pdf + theme(axis.text.x = element_blank(),
+                                       axis.text.y = element_blank(),
+                                       axis.ticks.x = element_blank(),
+                                       axis.ticks.y = element_blank())) +#) + 
+  ## C 
+  wrap_elements(full = rhapsody_umap_ggplot_int_time + theme_a4_pdf +
+                  theme(axis.text.x = element_blank(),
+                        axis.text.y = element_blank(),
+                        axis.ticks.x = element_blank(),
+                        axis.ticks.y = element_blank())) +#) + 
+  ## D
+  wrap_elements(full= vln_adt.weight + theme_a4_pdf) + 
+  
+  ## E 
+  wrap_elements(full=  dotplot.rna + 
+                  theme_a4_pdf + theme(legend.position = "right") + ggtitle("mRNA")) + 
+  ## F
+  wrap_elements(full = cellnumbers_l2 + 
+                  theme(axis.title = element_text(size=6), 
+                        axis.text = element_text(size = 6))) + 
+  ## G
+  wrap_elements(full = genes.oi.timepoints) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 6 - Related to Figure 3") & 
+  patchwork_panel_a4_pdf 
+dev.off()
+```
+
+## Related to Figure 3 - S7
+
+```{r Figure3-S6, fig.height=9.5, dev=c("png","pdf")}
+#pdf(paste0(result.dir,"Figure_3_S6.pdf"),paper = "a4", width = 6.9, height = 10)
+cairo_pdf(paste0(result.dir,"Figure_3_S7.pdf"), width = 6.9, height = 10)
+layout <- "
+AACCDDD
+BBBBDDD
+EEEEFFF
+EEEEFFF
+EEEEFFF
+EEEEFFF
+"
+## A
+wrap_elements(full= dooley_umap_ggplot + 
+                theme_a4_pdf + theme(axis.text.x = element_blank(),
+                                     axis.text.y = element_blank(),
+                                     axis.ticks.x = element_blank(),
+                                     axis.ticks.y = element_blank())) + 
+  ## B
+  wrap_elements(full= dooley_per_sample_perc + 
+                  theme_a4_pdf + theme(legend.position = "none",
+                                       legend.text = element_text(size=5),
+                                       legend.box.spacing = unit(0, "pt"),
+                                       strip.text.x = element_text(size=4)) +
+                  guides(fill=guide_legend(ncol=4,byrow=TRUE))) +  
+  ## C
+  wrap_elements(full = dooley_0_cellnumbers + theme_a4_pdf) + 
+  ## D
+  wrap_elements(full = grid.grabExpr(draw(compare_dooley_rhapsody_hm_new,
+                                          row_dend_side = "left",
+                                          heatmap_legend_side = "right",
+                                          main_heatmap = "average\ngene\nexpression",
+                                          auto_adjust = T,
+                                          padding = unit(c(1, 1, 1, 1), "mm")))) + 
+  ## E
+  wrap_elements(full= 
+                  grid.grabExpr(draw(dooley_day0_hm.hpa.mapping, 
+                                     merge_legends = TRUE,
+                                     heatmap_legend_side = "right",
+                                     annotation_legend_side = "right",
+                                     padding = unit(c(-1, -1, -1, -1), "mm")))) + 
+  ## F
+  wrap_elements(full= grid.grabExpr(draw(dooley_day0_hm.no.hpa.mapping, 
+                                         merge_legends = TRUE))) +
+  
+  
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork_panel_a4_pdf &
+  patchwork::plot_annotation(title = "Supplementary Figure 7 - Related to Figure 3 ") 
+
+dev.off()
+```
+
+## Figure 4
+
+-   Patient stratification
+
+```{r Figure4, fig.height=6.5, message=FALSE, warning=FALSE, dev=c("png","pdf")}
+
+cairo_pdf(paste0(result.dir,"Figure_4.pdf"),  width = 6.9, height = 6.5)
+
+layout <- "
+AAACCCC
+BB#CCCC
+DDDCCCC
+DDDEEEE
+"
+
+
+tmp.plot <- acute.dnpx.pca.clustered +
+  theme_a4_pdf + 
+  theme(legend.position = "right",
+        legend.box.spacing = unit(0, "pt"),
+        axis.text = element_blank(),
+        axis.title = element_text(size=6),
+        axis.ticks = element_blank(),
+        panel.grid.major.y = element_blank())
+
+## A
+wrap_elements(full = ggExtra::ggMarginal(tmp.plot, type="density", groupColour = TRUE, groupFill = TRUE)) + 
+  ##B
+  wrap_elements(full = clusters_sofa + theme_a4_pdf) +
+  
+  ## c
+  wrap_elements(full = clin.data.severity.groups.new & theme_a4_pdf + theme(strip.text.x = element_text(size = 5,face="bold"))) +
+  
+  ## D
+  wrap_elements(full= severity_groups_conv_volc + theme_a4_pdf) +
+  
+  ## E
+  
+  ggplot2::ggplot() +
+             ggplot2::annotation_custom(grid::rasterGrob(magick::image_read_pdf(paste0(result.tmp.dir,"severity_daps_upset.pdf"))[2],
+                                                          width=ggplot2::unit(8,"cm"),
+                                                          height=ggplot2::unit(3.5,"cm")),
+                                        -Inf, Inf, -Inf, Inf) + theme(rect = element_rect(fill = "transparent")) +
+  
+  ## 
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Figure 4") & 
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Related to Figure 4 - S8
+
+```{r Figure4-S7, fig.height=9, message=FALSE, warning=FALSE, dev=c("png","pdf")}
+cairo_pdf(paste0(result.dir,"Figure_4_S8.pdf"), width = 6.9, height = 9)
+
+layout <- "
+AAAA
+AAAA
+BCDD
+EEE#
+"
+
+layout <- "
+AABBB
+AABBB
+AABBB
+CCCCC
+CCCCC
+DEFFF
+GGG##
+"
+
+## A
+clin_para_whole_cohort + theme_a4_pdf + theme(strip.text.x = element_text(face=NULL, size=5)) + 
+  ## B
+  ggplot2::ggplot() +
+   ggplot2::annotation_custom(grid::rasterGrob(magick::image_read_pdf(paste0(result.tmp.dir,"chordDiagram.pdf")),
+                                              width=ggplot2::unit(9.0,"cm"),
+                                             height=ggplot2::unit(9.0,"cm")),
+                           -Inf, Inf, -Inf, Inf) + theme(rect = element_rect(fill = "transparent")) +
+  ## C
+  wrap_elements(full=grid.grabExpr(draw(hm.sofa.clin,
+                                        merge_legends = F,
+                                        heatmap_legend_side = "bottom",
+                                        annotation_legend_side = "right"))) +
+  ## D
+  wrap_elements(full= pca_FCmedian+ theme_a4_pdf) +
+  ## E
+  wrap_elements(full= acute.dnpx.ellbow + theme_a4_pdf) +
+  ## F
+  wrap_elements(full= grid.grabExpr(draw(pcaDF_FCmedian_PC1_6_hm))) +
+  ## G
+  wrap_elements(full = liver.tissueleakage.severity.plot + theme_a4_pdf + theme(legend.position = "none")) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 8 - Related to Figure 4") & 
+  patchwork_panel_a4_pdf  
+
+dev.off()
+```
+
+## Figure 5
+
+```{r Figure5, fig.height=4.5, message=FALSE, warning=FALSE, dev=c("png","pdf")}
+pdf(paste0(result.dir,"Figure_5.pdf"), width = 6.9, height = 4.5)#,paper = "a4",colormodel = my_pdf_colormodel) 
+
+layout <- "
+ABBCCCC
+ABBCCCC
+DDDDDDD
+DDDDDDD
+DDDDDDD
+EEEEEEE
+EEEEEEE
+"
+layout <- "
+ABBCCCC
+ABBCCCC
+DDDDDDD
+DDDDDDD
+DDDDDDD
+"
+
+## A
+wrap_elements(full = grid.grabExpr(draw(assay_adj_hm,
+                                        heatmap_legend_side = "bottom",
+                                        merge_legends = TRUE))) + 
+  ## B
+  wrap_elements(full = module_trait_plot + theme_a4_pdf + theme(legend.box.spacing = unit(0, "pt"))) +
+  ## C
+  wrap_elements(full = reactome_ora + theme_a4_pdf + 
+                  theme(axis.text.x = element_text(vjust=-2),
+                        legend.box.spacing = unit(0, "pt"))) +
+  ## D
+  wrap_elements(full = (reactome_ora_IIBLNL + 
+                          reactome_ora_ND + 
+                          reactome_ora_TNFR2+ 
+                          guide_area() +
+                          plot_layout(guides = "collect",
+                                      widths = c(2,2,2,.5)))) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Figure 5") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Related to Figure 5 - S8
+
+```{r Figure5-S8, fig.height=4, message=FALSE, warning=FALSE, dev=c("png","pdf")}
+pdf(paste0(result.dir,"Figure_5_S9.pdf"), width = 6.9, height = 4)#,paper = "a4",colormodel = my_pdf_colormodel) 
+
+layout <- "
+AB
+"
+## A
+wrap_elements(full = module_overview + theme_a4_pdf + theme(axis.text.x = element_blank())) + 
+  ## B
+  wrap_elements(full = turquoise_module_restrictions_density + theme_a4_pdf) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Supplementary Figure 9 - Related to Figure 5") &
+  patchwork_panel_a4_pdf 
+dev.off()
+```
+
+## Figure 6
+
+```{r Figure6, fig.height=5, message=FALSE, warning=FALSE, dev=c("png","pdf")}
+pdf(paste0(result.dir,"Figure_6.pdf"), width = 6.9, height = 5)#,paper = "a4",colormodel = my_pdf_colormodel) 
+
+layout <- "
+AAACCCC
+BBBCCCC
+DEEEEEE
+"
+
+## A
+wrap_elements(full = splsda.kclust.clusters.ggplot + 
+                coord_fixed(ratio = 1.8) + 
+                coord_cartesian(clip="off") +
+                theme_a4_pdf + theme(axis.text.x = element_blank(),
+                                     axis.text.y = element_blank(),
+                                     axis.ticks.x = element_blank(),
+                                     axis.ticks.y = element_blank()) +
+                theme(legend.position = "right")) +
+  ## B
+  wrap_elements(full = plsda_loadings.volcano.alt + theme_a4_pdf) +
+  ## C
+  wrap_elements(full = splsda.c1.top9 + theme_a4_pdf +
+                  theme(axis.text.x = element_blank(),
+                        legend.position = "none",
+                        legend.box.spacing = unit(0, "pt"))) + 
+  ## D
+  wrap_elements(full = MGH_covid_ssES + theme_a4_pdf) +
+  ## E
+  wrap_elements(full = TF_ssES_plot + theme_a4_pdf + theme(axis.text.x = element_text(size=5))) +
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Figure 6") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+## Figure 7
+```{r Figure7, fig.height=6, message=FALSE, warning=FALSE, dev=c("png","pdf")}
+pdf(paste0(result.dir,"Figure_7.pdf"), width = 6.9, height = 8)#,paper = "a4",colormodel = my_pdf_colormodel) 
+
+layout <- "
+AACCCCCC
+BBDDDDDE
+BBDDDDDE
+##DDDDDE
+"
+layout <- "
+AACCCCCCC
+BBDDDDDDD
+BBDDDDDDD
+EEDDDDDDD
+EEDDDDDDD
+FFFFFFFFF
+"
+
+## A
+wrap_elements(full = 
+                plot(euler(list("Differential\nabundant\nproteins\nin\nacute malaria"=selected.assays.wcna,
+                "Severity associated\nproteins in plasma" = restricted_module_turquoise)),
+     fills = c("white",
+               "turquoise"),
+     
+     quantities = TRUE,
+     lty = 1,#1:3,
+     fontsize=6,
+     labels = list(fontsize=5),
+     shape = "ellipse") 
+     # ggplot2::ggplot() #+
+     #ggplot2::annotation_custom(grid::rasterGrob(magick::image_read_pdf(paste0(result.tmp.dir,"severity_euler.pdf")),
+     #                                            width=ggplot2::unit(3.8,"cm"),
+     #                                            height=ggplot2::unit(2.8,"cm")),
+     #                           -Inf, Inf, -Inf, Inf) + theme(rect = element_rect(fill = "transparent"))) +
+) +
+  ## B
+  wrap_elements(full = 
+                  hpa.protein.origin.overview_severity +
+                  theme_a4_pdf +
+                  theme(legend.position = "none",
+                        panel.grid.major.y = element_blank()) + 
+                  guides(fill=guide_legend(ncol=1,byrow=TRUE)) )  +
+  ## C
+  wrap_elements(full = test_plot + theme_a4_pdf +
+                  guides(color=guide_legend(nrow=1,byrow=TRUE)) +
+                  theme(axis.text.x = element_text(colour = "black",angle=90,hjust=1,size = 2),
+                        
+                        legend.position = c(0, 1.1),
+                        legend.justification = c("left", "top")
+                  )) +
+  ## D
+  wrap_elements(full= ggplot2::ggplot() +
+                  ggplot2::annotation_custom(grid::rasterGrob(magick::image_read_pdf(paste0(result.tmp.dir,
+                                                                                            "ImmuneCell_Protein_CircosPlot_severitymodule.pdf"),
+                                                                                     density = 300),
+                                                              width=ggplot2::unit(12,"cm"),#8.7
+                                                              height=ggplot2::unit(12,"cm")),
+                                             -Inf, Inf, -Inf, Inf) + theme(rect = element_rect(fill = "transparent"))) +
+  ## E
+  wrap_elements(full = severity_ligand_npx + theme_a4_pdf +
+                  theme(axis.text.x = element_blank(),
+                        legend.position = "none",
+                        legend.box.spacing = unit(0, "pt"))) + 
+  ## F
+  wrap_elements(full= protein_cellnum_cornet + theme(legend.key.width = unit(.3, "cm"),
+                                                     legend.key.height = unit(.3,"cm"))) + 
+  
+  patchwork::plot_layout(design = layout) +
+  patchwork::plot_annotation(title = "Figure 7") &
+  patchwork_panel_a4_pdf 
+
+dev.off()
+```
+
+
+
+# ===== Supplementary files
+
+## Supplementary Table S2
+```{r}
+daps.out%>%
+  write_tsv(paste0(result.dir,"Supplementary_TableS2_DifferentiallyAbundantProteins.tsv"))
+```
+
+## Supplementary Table S4
+```{r}
+clin.data.severity.groups.new.data %>% 
+  write_tsv(paste0(result.dir,"Supplementary_TableS4_ClinicalChemistry_severity_groups.tsv"))
+```
+
+## Supplementary Table S5
+```{r}
+malaria.severity.siganture %>% 
+  arrange(values) %>% 
+  dplyr::rename(importance = values) %>% 
+  write_tsv(paste0(result.dir,"Supplementary_TableS5_SeveritySignature.tsv"))
+```
+
+
+## Writing the supplementary data frame into an excel file
+```{r}
+# Table S2 - Differential Abundance Proteins (DAP) at acute malaria compared to the healthy state at 12 months after disease.
+supplementary.excel <- paste0(result.dir,"SupplementaryExcelFile.xlsx")
+
+require(openxlsx)
+list_of_datasets <- list("Table S2" = daps.out,
+                         "Table S4" = clin.data.severity.groups.new.data,
+                         "Table S5" = malaria.severity.siganture %>% 
+                           arrange(values) %>% 
+                           dplyr::rename(importance = values)
+                         )
+write.xlsx(list_of_datasets, file = supplementary.excel)
+
+```
+
+
+# ===== Data for Shiny app
+
+```{r}
+## FoldChange data
+dap.res %>% 
+  transmute(Assay, 
+            UniProt,
+            contrast, 
+            logFC,
+            SE,
+            conf.low = logFC-SE,
+         conf.high = logFC+SE,
+         p.value,
+         p.adj,
+         FDR) %>% 
+ # dplyr::select(-data,-lme.simple.tidy) %>%
+  #mutate() %>% 
+  saveRDS("../Shiny_MalariaTravellerProteomics/data/MalariaExplore1536_logFC.rds")
+```
+
+
+```{r}
+## NPX per time point summary
+data.long %>% 
+  inner_join(sampleTable_simple) %>% 
+  group_by(Assay, Time) %>% 
+  summarise(meanNPX = mean(NPX),
+            medianNPX = median(NPX),
+            IQR = IQR(NPX),
+            FirstQuartile = quantile(NPX,probs = c(0.25)),
+            ThirdQuartile = quantile(NPX,probs = c(0.75)),
+            ymin   = pmax(FirstQuartile - 1.5 * IQR), # optional
+            ymax   = pmin(ThirdQuartile + 1.5 * IQR),
+            SD = sd(NPX),
+            SE = sd(NPX)/sqrt(length((NPX)))
+            ) %>% ungroup() %>% saveRDS("../Shiny_MalariaTravellerProteomics/data/MalariaExplore1536_summaries_assay_timepoint.rds")
+
+## NPX at Acute for each severity group as summary
+data.long %>% 
+  inner_join(sampleTable_simple) %>% 
+  filter(Time=="Acute") %>% 
+  inner_join(patient_clust,by="study_id") %>% 
+  group_by(Assay, severity_lab) %>% 
+  summarise(meanNPX = mean(NPX),
+            medianNPX = median(NPX),
+            IQR = IQR(NPX),
+            FirstQuartile = quantile(NPX,probs = c(0.25)),
+            ThirdQuartile = quantile(NPX,probs = c(0.75)),
+            ymin   = pmax(FirstQuartile - 1.5 * IQR),
+            ymax   = pmin(ThirdQuartile + 1.5 * IQR)
+            ) %>% ungroup() %>% saveRDS("../Shiny_MalariaTravellerProteomics/data/MalariaExplore1536_summaries_assay_severitygroup.rds")
+
+
+## FoldChange with HPA
+dap.res %>% 
+  dplyr::select(-data,-lme.simple.tidy) %>%
+  mutate(conf.low = logFC-SE,
+         conf.high = logFC+SE) %>% 
+  arrange(desc(abs(logFC)),desc(p.adj)) %>% 
+  arrange(-logFC) %>% 
+  left_join(hpa_24.0 %>% janitor::clean_names(),by=c("UniProt" = "uniprot")) %>% 
+  ungroup() %>% saveRDS("../Shiny_MalariaTravellerProteomics/data/MalariaExplore1536_logFC_hpaInfo.rds")
+```
+
