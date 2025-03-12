@@ -37,8 +37,9 @@ The original publication can be accessed here: [Lautenbach *et. al* JOURNAL 2025
 -   [Analysis scripts](#scripts)
 -   [Data availability](#data-statement)
 -   [Repo overview](#repo-overview)
+-   [Contact information](#contact)
 
-## General info about this repository {#general-info}
+## General info about this repository
 
 This repository contains r code, related to the data analysis and
 visualization described in the study.
@@ -147,3 +148,10 @@ project
 │   │   file02.txt
 │
 ```
+
+## Contact {#contact}
+
+For questions or inquiries, please contact:
+
+Maximilian Julius Lautenbach
+GitHub: [LautenbachMJ](https://github.com/LautenbachMJ)
