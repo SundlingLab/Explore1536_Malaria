@@ -32,7 +32,6 @@ The original publication can be accessed here: [Lautenbach *et. al* JOURNAL 2025
 
 -   [General info about this repository](#general-info-about-this-repository)
 -   [Dependencies](#dependencies)
--   [Repo description](#repo-description)
 -   [Data types](#data-types)
 -   [Analysis scripts](#analysis-scripts)
 -   [Data availability statement](#data-availability-statement)
@@ -44,13 +43,6 @@ The original publication can be accessed here: [Lautenbach *et. al* JOURNAL 2025
 This repository contains r code, related to the data analysis and
 visualization described in the study.
 
--   **src**\
-    contains all the analysis script including the preprocessing steps for sc data
--   **manuscript**\
-    reproducible code for figures included in the manuscript
--   **md_files**\
-    rendered versions of the Rmds in src and manuscript folder
-    respectively
 
 ## Dependencies
 
@@ -82,7 +74,8 @@ For access, please see the [Data availability statement](#data-availability).
 
 ### Manuscript figures
 
-All downstream data analysis, visualization and final main and supplementary figures can be found under as a markdown [Downstream_analysis_full_4repo.Rmd](https://SundlingLab/Explore1536_Malaria/Downstream_analysis_full_4repo) and [here]() as a rendered html.
+All downstream data analysis, visualization and final main and supplementary figures can be found under as a [rendered html report](), and the markdown can be found [here]()
+[Downstream_analysis_full_4repo.Rmd](https://SundlingLab/Explore1536_Malaria/Downstream_analysis_full_4repo).
 
 ## Data availability statement 
 
@@ -106,7 +99,7 @@ Additional data used:
 - Consensus transcript expression level data set from the Human Protein
 Atlas, summarizing expression per gene in 50 tissues based on
 transcriptomics data from HPA and GTEx. Here, we used version 23.0 and
-Ensembl version 109, retrieved [here](https://proteinatlas.org/download/rna_tissue_gtex.tsv.zip).
+Ensembl version 109, retrieved [here](https://v23.proteinatlas.org/about/download).
 
 - scRNA-seq data from PBMCs of individuals with *P. falciparum* malaria,
 published by [Dooley *et al.* 2023](https://doi.org/10.1038/s41467-023-43181-7), has been accessed as a Seurat object under
@@ -149,7 +142,7 @@ project
 │
 ```
 
-## Contact
+## Contact information
 
 For questions or inquiries, please contact:
 
