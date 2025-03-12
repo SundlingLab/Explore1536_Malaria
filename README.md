@@ -30,14 +30,14 @@ The original publication can be accessed here: [Lautenbach *et. al* JOURNAL 2025
 
 ## Table of contents
 
--   [General info about this repository](#general-info)
+-   [General info about this repository](#general-info-about-this-repository)
 -   [Dependencies](#dependencies)
 -   [Repo description](#repo-description)
 -   [Data types](#data-types)
--   [Analysis scripts](#scripts)
--   [Data availability](#data-statement)
+-   [Analysis scripts](#analysis-scripts)
+-   [Data availability statement](#data-availability-statement)
 -   [Repo overview](#repo-overview)
--   [Contact information](#contact)
+-   [Contact information](#contact-information)
 
 ## General info about this repository
 
@@ -52,7 +52,7 @@ visualization described in the study.
     rendered versions of the Rmds in src and manuscript folder
     respectively
 
-## Dependencies {#dependencies}
+## Dependencies
 
 Project is created with:
 
@@ -61,7 +61,7 @@ Project is created with:
 -   Running under: macOS Sonoma 14.7.4
 -   for more details, please see the `renv.lock` file
 
-## Data types {#data-types}
+## Data types
 
 The omics data included in this study:
 
@@ -72,9 +72,9 @@ The omics data included in this study:
 -   Plasma protein abundance data from COVID-19 patients (Olink Explore 1536 data)
 -   scRNA-seq data of PBMCs from malaria patients (10x data)
 
-For access, please see the [Data availabilitystatement](#data-statement).
+For access, please see the [Data availability statement](#data-availability).
 
-## Analysis scripts {#scipts}
+## Analysis scripts 
 
 ### single cell multi-omics analysis to determine cell types and their gene expression
 
@@ -84,7 +84,7 @@ For access, please see the [Data availabilitystatement](#data-statement).
 
 All downstream data analysis, visualization and final main and supplementary figures can be found under as a markdown [Downstream_analysis_full_4repo.Rmd](https://SundlingLab/Explore1536_Malaria/Downstream_analysis_full_4repo) and [here]() as a rendered html.
 
-## Data Availability Statement {#data-statement}
+## Data availability statement 
 
 Due to patient consent and confidentiality agreements, the data sets can
 be made available for validation or re-usage by contacting the lead
@@ -116,7 +116,7 @@ published by [Dooley *et al.* 2023](https://doi.org/10.1038/s41467-023-43181-7),
 
 
 
-## Repo overview {#repo-overview}
+## Repo overview 
 <!-- -->
 
 ```         
@@ -149,7 +149,7 @@ project
 │
 ```
 
-## Contact {#contact}
+## Contact
 
 For questions or inquiries, please contact:
 
