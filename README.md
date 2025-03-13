@@ -84,11 +84,11 @@ contact. Data access will be evaluated according to the data access plan
 and Swedish legislation. Source data are provided in this paper. For the
 individual exploration of the proteomic data, we created a Shiny app,
 sourcing pre-computed aggregated data that can be browsed online at
-[malaria-proteomics-resource.serve.scilifelab.se](https://malaria-proteomics-resource.serve.scilifelab.se/app/malaria-proteomics-resource). Moreover, measured
-proteins are also visualized on the individual protein summary pages of
-the Human Disease Blood Atlas, an initiative to characterize blood
-protein profiles across a multitude of diseases Human Disease Blood
-Atlas.
+[malaria-proteomics-resource.serve.scilifelab.se](https://malaria-proteomics-resource.serve.scilifelab.se/app/malaria-proteomics-resource).
+
+Moreover, the measured proteins are also visualized on the individual protein summary pages of
+the [Human Disease Blood Atlas](https://www.proteinatlas.org/humanproteome/blood), an initiative to characterize blood
+protein profiles across a multitude of diseases Human Disease Blood Atlas.
 
 Request for data access can be made to Prof. Anna Färnert, Karolinska
 Institutet, (for contact details, see the original study).
