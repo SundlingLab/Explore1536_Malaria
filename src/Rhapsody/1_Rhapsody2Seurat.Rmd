@@ -1,0 +1,213 @@
+---
+title: "Targeted multi-omics single cell seq (mRNA + protein) on MalariaTravellerCohort"
+author: "Maximilian Julius Lautenbach"
+date: '`r format(Sys.Date(), "%Y-%m-%d")`'
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    highlight: pygments
+abstract: A script to generate a Seurat object from Rhapsody output.
+knit: (function(inputFile, encoding) {
+          rmarkdown::render(inputFile,
+                            encoding = encoding, 
+                            output_file = paste0(
+                              xfun::sans_ext(inputFile), '_', Sys.Date(), '.html'),
+                                output_dir = "../results/lab_book/")})
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(echo = TRUE, 
+                     #root.dir = getwd(), 
+                     fig.width = 6, fig.height = 5, warning = FALSE, message = FALSE)
+
+result.dir <- paste0("../results/",Sys.Date(),"/")
+
+## creates result.dir with date in if not existent
+ifelse(isFALSE(dir.exists(paste0("../",result.dir))), dir.create(paste0("../",result.dir),recursive = TRUE),"Result directory for today exists already!")
+options(stringsAsFactors = FALSE) 
+```
+
+```{r message = FALSE}
+library(tidyverse)
+library(data.table)
+library(Seurat)
+library(patchwork)
+library(randomcoloR)
+#source("helper_fun.R")
+```
+
+# Rhapsody data
+## parsing libraries
+
+```{r}
+Cart1 <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library1/Combined_P21517_1001_DBEC_MolsPerCell.csv")
+Cart1_ST_mapping <- fread(input= "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library1/P21517_1001_Sample_Tag_Calls.csv")
+Cart1_ST_sbg_cellnames <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library1/Combined_P21517_1001_cell_type_experimental.csv")
+
+Cart2 <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library2/Combined_P21517_1002_DBEC_MolsPerCell.csv")
+Cart2_ST_mapping <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library2/P21517_1002_Sample_Tag_Calls.csv")
+Cart2_ST_sbg_cellnames <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library2/Combined_P21517_1002_cell_type_experimental.csv")
+
+Cart3 <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library3/Combined_P21517_1003_DBEC_MolsPerCell.csv")
+Cart3_ST_mapping <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library3/P21517_1003_Sample_Tag_Calls.csv")
+Cart3_ST_sbg_cellnames <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library3/Combined_P21517_1003_cell_type_experimental.csv")
+
+Cart4 <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library4/Combined_P21517_1004_DBEC_MolsPerCell.csv") 
+Cart4_ST_mapping <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library4/P21517_1004_Sample_Tag_Calls.csv")
+Cart4_ST_sbg_cellnames <- fread(input = "../../data/RhapsodyCountFiles/abseq_calling_pipeline/library4/Combined_P21517_1004_cell_type_experimental.csv")
+
+lib1 <- Cart1_ST_mapping %>% mutate(Library = 1) %>% inner_join(Cart1_ST_sbg_cellnames, by="Cell_Index") %>% inner_join(Cart1, by="Cell_Index")
+lib2 <- Cart2_ST_mapping %>% mutate(Library = 2) %>% inner_join(Cart2_ST_sbg_cellnames, by="Cell_Index") %>% inner_join(Cart2, by="Cell_Index") 
+lib3 <- Cart3_ST_mapping %>% mutate(Library = 3) %>% inner_join(Cart3_ST_sbg_cellnames, by="Cell_Index") %>% inner_join(Cart3, by="Cell_Index") 
+lib4 <- Cart4_ST_mapping %>% mutate(Library = 4) %>% inner_join(Cart4_ST_sbg_cellnames, by="Cell_Index") %>% inner_join(Cart4, by="Cell_Index") 
+```
+
+
+```{r}
+all.data <- lib1 %>% 
+  bind_rows(lib2) %>% 
+  bind_rows(lib3) %>% 
+  bind_rows(lib4) %>% 
+  mutate(Cell_ID = paste0("Cell-",Cell_Index,Library)) %>% 
+  select(-Cell_Index)
+all.data.rna <- all.data %>% select(Cell_ID,Sample_Tag,Sample_Name,Library,Cell_Type_Experimental,contains("|pAbO"))
+all.data.ab <- all.data %>% select(Cell_ID,Sample_Tag,Sample_Name,Library,Cell_Type_Experimental,!contains("|pAbO"))
+```
+
+## BD pipeline cell type mapping
+```{r}
+all.data %>% select(Cell_ID,Library,Cell_Type_Experimental) %>% write.csv("../../data/RhapsodyCountFiles/temp/AbSeqCellCalling_MalariaTraveller_RhapsodyLibraries_CellTypeExperimental.csv", row.names = F)
+```
+
+```{r}
+#tag="12"
+CreateSO <- function(all.data, tag, Time, Group, library, project_name){
+  temp.list <- NULL
+  so.rna <- NULL
+  temp <- all.data %>% 
+    select(Cell_ID,everything()) %>% 
+    filter(grepl(tag, Sample_Tag)) %>% 
+    filter(Library == library)
+  
+  rna <- temp %>% select(Cell_ID,!contains("pAbO"),-c("Sample_Name","Sample_Tag","Library","Cell_Type_Experimental")) %>% 
+    gather(feature, value, 2:ncol(.)) %>% 
+    spread(Cell_ID,value) %>% 
+    column_to_rownames("feature")
+  
+  ab <- temp %>% select(Cell_ID,contains("pAbO")) %>% 
+    gather(feature, value, 2:ncol(.)) %>% 
+    mutate(feature = gsub("\\|.*","",feature)) %>% 
+    mutate(feature = gsub(":.*","",feature)) %>% 
+    spread(Cell_ID,value) %>% 
+    column_to_rownames("feature")
+  
+  temp.list <- list(rna = rna, ab=ab)
+  
+  so.rna <- CreateSeuratObject(counts = temp.list[["rna"]], min.cells = 3, min.features = 10,project = paste0("Sample",tag))#"MalariaTraveller")#,meta.data = c("Batch" = unique(temp$Batch), "Sample"=tag))
+  #pbmc <- NormalizeData(pbmc)
+  so.rna[["ADT"]] <- CreateAssayObject(temp.list[["ab"]][, colnames(x = so.rna)])
+  #pbmc <- NormalizeData(pbmc, assay = "ADT", normalization.method = "CLR")
+  
+  Assays(so.rna)
+  
+  so.rna$Project = project_name
+  so.rna$Library = unique(temp$Library)
+  so.rna$Time = Time
+  so.rna$Group = Group
+
+  ## add BD pipelines "Cell_Type_Experimental" to meta data
+  #so.rna@meta.data <- so.rna@meta.data %>% as.data.frame() %>% rownames_to_column("Cell_ID") %>% full_join(temp %>% select(Cell_ID,Cell_Type_Experimental),by="Cell_ID")
+  
+  return(so.rna)
+}
+```
+
+#### creating Seurat objects for each sample
+```{r}
+Sample1 <- CreateSO(all.data,"01","Acute","primary",1,"MalariaTraveller")
+Sample2 <- CreateSO(all.data,"02","D10","primary",1,"MalariaTraveller")
+Sample3 <- CreateSO(all.data,"03","Y1","primary",1,"MalariaTraveller")
+Sample4 <- CreateSO(all.data,"04","Acute","previously",2,"MalariaTraveller")
+Sample5 <- CreateSO(all.data,"05","D10","previously",2,"MalariaTraveller")
+Sample6 <- CreateSO(all.data,"06","Y1","previously",2,"MalariaTraveller")
+Sample7 <- CreateSO(all.data,"07","Acute","previously",3,"MalariaTraveller")
+Sample8 <- CreateSO(all.data,"08","D10","previously",3,"MalariaTraveller")
+Sample9 <- CreateSO(all.data,"09","Y1","previously",3,"MalariaTraveller")
+Sample10 <- CreateSO(all.data,"10","Acute","primary",4,"MalariaTraveller")
+Sample11 <- CreateSO(all.data,"11","D10","primary",4,"MalariaTraveller")
+Sample12 <- CreateSO(all.data,"12","Y1","primary",4,"MalariaTraveller")
+
+# Merge datasets into one single seurat object
+all.data.so <- merge(Sample1, c(Sample2,Sample3, Sample4, Sample5, Sample6,
+                                Sample7, Sample8, Sample9, Sample10, Sample11, Sample12))#c(paste0("Sample",2:12)))#, add.cell.ids = c("prim1_acute", "prim1_10", "prim1_y1",
+#                   "prev1_acute", "prev1_d10", "prev1_y1",
+#                   "prev2_acute", "prev2_d10", "prev2_y1",
+#                   "prim2_acute", "prim2_d10", "prim2_y1"))
+
+# remove all objects that will not be used.
+rm(Sample1, Sample2,Sample3, Sample4, Sample5, Sample6,
+   Sample7, Sample8, Sample9, Sample10, Sample11, Sample12)
+
+# run garbage collect to free up memory
+gc()
+
+```
+
+```{r}
+all.data.so
+
+as.data.frame(all.data.so@assays$RNA@counts[1:10, 1:2])
+
+as.data.frame(all.data.so@assays$ADT@counts[1:10, 1:2])
+
+head(all.data.so@meta.data, 10)
+```
+
+### Visualise cell numbers 
+#### Cellnumbers per sample
+```{r}
+## extract meta data
+md <- all.data.so@meta.data %>% as.data.table %>% rownames_to_column("Cell-ID")
+# the resulting md object has one "row" per cell
+
+md %>% 
+  group_by(orig.ident) %>% 
+  count() %>% 
+  ggplot(aes(x=orig.ident,y=n, fill=orig.ident)) +
+  coord_flip()+
+  geom_col()+
+  geom_hline(yintercept = 6000)
+```
+
+#### Cumulative number of cells per group
+
+```{r}
+md %>% 
+  group_by(Group,Time) %>% 
+  count() %>% 
+  ggplot(aes(x=Group,y=n, fill=Time)) +
+  coord_flip()+
+  geom_bar(stat="identity", position="dodge") +
+  scale_fill_manual(values=TIME_colors) +
+  labs(x="Exposure group",
+       y="Total number of cells",
+       title = "Cumulative number of cells per group",
+       caption = "planned #: 12.000 cells"
+  ) +
+  scale_y_continuous(breaks = )
+
+```
+
+
+### RNA counts vs RNA features
+```{r}
+FeatureScatter(all.data.so, "nCount_RNA", "nFeature_RNA", group.by = "Library", pt.size = 0.5)
+```
+
+```{r}
+saveRDS(object = all.data.so, file = paste0("../../data/RhapsodyCountFiles/temp/AbSeqCellCalling_MalariaTraveller_RhapsodyLibraries_SeuratObeject.rds"))
+```

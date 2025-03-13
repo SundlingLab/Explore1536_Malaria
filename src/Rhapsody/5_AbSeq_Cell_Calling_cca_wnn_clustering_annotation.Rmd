@@ -1,0 +1,655 @@
+---
+title: "Celltype identification of clustered WNN, CCA integrated data"
+author: "Julius Lautenbach"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_notebook:
+    self_contained: yes
+    highlight: tango
+    df_print: paged
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+    toc_depth: 3
+  html_document:
+    self_contained: yes
+    highlight: tango
+    df_print: paged
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+    toc_depth: 3
+    keep_md: yes
+    fig_caption: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(echo = TRUE, root.dir = getwd(), fig.width = 6, fig.height = 5, warning = FALSE, message = FALSE)
+
+result.dir <- paste0("../results/",Sys.Date(),"/")
+
+## creates result.dir with date in if not existent
+ifelse(isFALSE(dir.exists(paste0("../",result.dir))), dir.create(paste0("../",result.dir),recursive = TRUE),"Result directory for today exists already!")
+options(stringsAsFactors = FALSE)
+```
+
+# Libraries
+```{r message = FALSE}
+library(tidyverse)
+library(data.table)
+library(Seurat)
+library(patchwork)
+library(randomcoloR)
+source("../helper_fun.R")
+#install.packages("clustree")
+library(clustree) ## see https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html for explanation
+mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
+```
+
+
+## change color
+```{r}
+names(ENDEMIC_colors) <- c("previously","primary")
+```
+
+
+```{r}
+#adt_rna <- readRDS("../../data/SeuratObjects/2021-12-10AbSeq_Cell_Calling_qc_cca_wnn.rds")
+#adt_rna <- readRDS("../../data/SeuratObjects/2021-12-13AbSeq_Cell_Calling_qc_cca_wnn_clustering.rds")
+adt_rna <- readRDS("../../data/RhapsodyCountFiles/temp/AbSeq_Cell_Calling_qc_cca_wnn_clustering.rds")
+
+```
+
+## Background information for loaded Seurat Object
+* Seurat object containing 12 samples, from 4 libraries
+* Doublets and undetermined cells, determined by BD SevenBridges pipline, were removed
+* Only cells with "min.cells = 3" and "min.features = 10" on RNA level were included
+
+### QC step removed cells with based on RNA counts
+resulting in 374 genes across 73,121 cells
+
+### Data integration
+* CCA integrated (horizontal integration, 12-sample integration, for each modality)
+* WNN integratd (vertical integration, 2-layer integration, rna and adt)
+
+#### CCA ingetration - RNA
+* logNormalized, scale.factor=10000
+* dim 1:30
+
+#### CCA ingetration - ADT
+* CLR noralization, margin=2
+* dim 1:18
+
+#### WNN integration
+* "rna.cca.pca", "adt.cca.pca"
+* list(1:30, 1:18)
+* prune.SNN = 1/15, # default Cutoff not to discard edge in SNN graph
+* k.nn = 20, ## default the number of multimodal neighbors to compute
+* knn.range = 200, ## default The number of approximate neighbors to compute
+
+
+### Clustering on WNN integrated graph with "smart local moving (SLM) algorithm"
+* SLM algorithm - graph-based smart local moving (SLM) algorithm (Waltman and Van Eck, 2013)
+-> "wsnn_res.0.8" suggested by seurat
+
+```{r}
+adt_rna@meta.data %>% select(contains("wsnn_res")) %>% names() ## seurat default clustering number
+```
+
+* algorithm 3
+* SLM algorithm - graph-based smart local moving (SLM) algorithm (Waltman and Van Eck, 2013)
+* resolution calculated c(0.01,0.05,0.1,0.2,0.25,0.3,0.4,0.5,1,2)
+
+### evalutation of clustering
+
+```{r fig.width=6, fig.height=4}
+clustree(adt_rna@meta.data, prefix = "wsnn_res.")
+```
+
+## Comment: resolution of at least 0.8 seems best for CCA(ADT+RNA)-WNN
+
+
+```{r fig.width=7, fig.height=2}
+Idents(adt_rna) <- "wsnn_res.0.01"
+
+p1 <- DimPlot(adt_rna, reduction = 'wnn.umap', label = TRUE, repel = TRUE, label.size = 2.5) + NoLegend() + ggplot2::ggtitle("wsnn_res.0.01")
+
+Idents(adt_rna) <- "wsnn_res.0.05"
+
+p2 <- DimPlot(adt_rna, reduction = 'wnn.umap', label = TRUE, repel = TRUE, label.size = 2.5) + NoLegend()+ ggplot2::ggtitle("wsnn_res.0.05")
+
+Idents(adt_rna) <- "wsnn_res.0.1"
+
+p3 <- DimPlot(adt_rna, reduction = 'wnn.umap', label = TRUE, repel = TRUE, label.size = 2.5) + NoLegend() + ggplot2::ggtitle("wsnn_res.0.1")
+
+Idents(adt_rna) <- "wsnn_res.0.8"
+
+p4 <- DimPlot(adt_rna, reduction = 'wnn.umap', label = TRUE, repel = TRUE, label.size = 2.5) + NoLegend()+ ggplot2::ggtitle("wsnn_res.0.8")
+
+p1 | p2 | p3 | p4
+```
+
+
+### Normalizing unintegrated data
+
+```{r}
+pbmc <- adt_rna
+#- RNA Normalization
+pbmc <- NormalizeData(object = pbmc, assay = 'RNA', normalization.method = 'LogNormalize', scale.factor = 10000) %>% ScaleData(vars.to.regress = "nCount_RNA")
+
+#- Ab Normalization
+pbmc <- NormalizeData(object = pbmc, assay = 'ADT', normalization.method = 'CLR') %>% ScaleData() #margin   If performing CLR normalization, normalize across features (1) or cells (2)
+
+
+pbmc@meta.data$wsnn_res.0.8num <- as.numeric(as.character(pbmc@meta.data$wsnn_res.0.8))
+```
+
+### Finding conserved markers for each clusters
+* on un-integrated data
+* might help cell type identification
+```{r message=FALSE, warning=FALSE}
+Idents(pbmc) <- "wsnn_res.0.8"
+DefaultAssay(pbmc) <- "RNA"
+cluster.marker.list <- list()
+
+for(cluster in unique(pbmc@meta.data$wsnn_res.0.8)){
+  markers <-
+    FindConservedMarkers(pbmc,ident.1 = cluster, grouping.var = "orig.ident", verbose = FALSE)
+  cluster.marker.list[[cluster]] <- markers
+}
+```
+```{r}
+conserved.markers <- bind_rows(cluster.marker.list, .id = 'cluster') %>%
+  rownames_to_column("gene") %>% mutate(gene = gsub("\\..*","",gene))
+
+#conserved.markers %>% group_by(cluster) %>% count(cluster)
+#conserved.markers %>% group_by(cluster) %>% arrange(max_pval)
+conserved.markers1 <- conserved.markers %>%
+  group_by(cluster) %>%
+  top_n(n = 3, wt = desc(max_pval)) #%>% ungroup()
+
+conserved.markers1 %>% arrange(as.numeric(cluster))
+```
+
+
+```{r}
+Idents(pbmc) <- "wsnn_res.0.8num"
+DimPlot(pbmc, reduction = 'wnn.umap', label = TRUE, repel = TRUE, label.size = 5) + NoLegend() + ggplot2::ggtitle("wsnn_res.0.8")
+```
+
+```{r}
+DefaultAssay(pbmc) <- "rna.CCA"#"RNA.CCA"
+DoHeatmap(subset(x = pbmc, downsample = 100),# Downsample the number of cells per identity class
+          features = c(conserved.markers1$gene), assay = "rna.CCA",label = T,group.by = "wsnn_res.0.8num") + NoLegend() + ggplot2::ggtitle("mRNA markers") + scale_fill_gradientn(colours = rev(mapal)) + theme(text = element_text(size = 6))
+```
+
+
+```{r}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+DoHeatmap(subset(x = pbmc, downsample = 100),# Downsample the number of cells per identity class
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() +ggplot2::ggtitle("Protein markers") + scale_fill_viridis()
+```
+
+## Level 1 Cell type
+
+Level 1 annotations: CD4+ T cells, CD8+ T cells, Unconventional T, B cells, Natural Killer (NK) cells, Monocytes, Dendritic Cells (DC), and Other (consisting of progenitors and additional rare populations expressing erythroid or platelet lineage markers)
+
+```{r}
+l1.cluster.ids <- c("0" = "Monocytes",
+                    "1" = "NK",
+                    "2" = "CD4+ T",
+                    "3" = "NK",
+                    "4" = "CD4+ T",
+                    "5" = "CD4+ T",
+                    "6" = "CD4+ T",
+                    "7" = "Monocytes",
+                    "8" = "CD8+ T",
+                    "9" = "CD8+ T",
+                    "10" = "CD8+ T",
+                    "11" = "gdT",
+                    "12" = "undefined",
+                    "13" = "CD8+ T",
+                    "14" = "Monocytes",
+                    "15" = "CD4+ T", #CD€/CD8 mix
+                    "16" = "B",
+                    "17" = "CD4+ T",
+                    "18" = "B",
+                    "19" = "CD4+ T",
+                    "20" = "NK",
+                    "21" = "gdT",
+                    "22" = "CD4+ T",
+                    "23" = "NK",
+                    "24" = "CD4+ T",
+                    "25" = "DC",
+                    "26" = "CD8+ T",
+                    "27" = "Monocytes",
+                    "28" = "DC",
+                    "29" = "B",
+                    "30" = "CD4+ T",
+                    "31" = "CD4+ T"
+                    #"32" = "?"
+                    )
+l1.cluster.ids.colors <- randomcoloR::distinctColorPalette(length(l1.cluster.ids))
+names(l1.cluster.ids.colors) <- l1.cluster.ids
+
+pbmc <- RenameIdents(pbmc, l1.cluster.ids)
+pbmc$CellType_L1 <- Idents(pbmc)
+Idents(pbmc) <- "wsnn_res.0.8"
+DimPlot(pbmc, reduction = "wnn.umap",cols = l1.cluster.ids.colors, group.by = "CellType_L1",repel = T,label = T, pt.size = 0.5)
+```
+
+```{r}
+library(scales)
+
+tibble(pbmc@meta.data) %>%
+  group_by(Time,orig.ident) %>%
+  count(CellType_L1) %>%
+  # Stacked + percent
+  ggplot(aes(fill = CellType_L1, y=n, x=orig.ident)) +
+  geom_bar(position="fill", stat="identity",width = 0.9) +
+  scale_fill_manual(values = l1.cluster.ids.colors) +
+  facet_grid(~Time,scales = "free_x") +
+  scale_y_continuous(labels = percent) + ## labels requires package scales
+  labs(x = "",
+       y = "Percentage") +
+  theme_cowplot() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+### Level 1 all clusters, 100 cells
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(subset(x = pbmc, downsample = 100,cells = colnames(pbmc)[pbmc@meta.data$wsnn_res.0.8num %in% c(0:10)]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() +ggplot2::ggtitle("Protein markers") + scale_fill_viridis()
+DoHeatmap(subset(x = pbmc, downsample = 100,cells = colnames(pbmc)[pbmc@meta.data$wsnn_res.0.8num %in% c(10:20)]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() +ggplot2::ggtitle("Protein markers") + scale_fill_viridis()
+DoHeatmap(subset(x = pbmc, downsample = 100,cells = colnames(pbmc)[pbmc@meta.data$wsnn_res.0.8num %in% c(20:32)]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() +ggplot2::ggtitle("Protein markers") + scale_fill_viridis()
+```
+
+### Level 1 CD4+ and CD8+ T cells
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+ DoHeatmap(subset(x = pbmc, #downsample = 100,
+                 cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("CD4+ T","undefined")]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("CD4+ Protein markers") + scale_fill_viridis()
+
+DoHeatmap(subset(x = pbmc, #downsample = 100,
+                 cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("CD8+ T","undefined")]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("CD8+ Protein markers") + scale_fill_viridis()
+```
+
+### Level 1 NK an gdT cells
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(subset(x = pbmc, #downsample = 100,
+                           cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("NK")]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("NK Protein markers") + scale_fill_viridis()
+
+DoHeatmap(subset(x = pbmc, #downsample = 100,
+                           cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("gdT")]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("gdT Protein markers") + scale_fill_viridis()
+```
+
+### Level 1 Monocytes
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(subset(x = pbmc, downsample = 100,cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("Monocytes")]),
+          features = rownames(pbmc),group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("Monocytes Protein markers") + scale_fill_viridis()
+```
+
+#### Subclustering of cluster 12
+```{r}
+Idents(pbmc) <- "wsnn_res.0.8"
+
+pbmc <- FindSubCluster(pbmc,cluster=12,subcluster.name = "Subclustering_12",graph.name = "wsnn",algorithm = 3,resolution = 0.1)
+```
+
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(subset(x = pbmc, #downsample = 100,
+                 cells = colnames(pbmc)[grepl("12_",pbmc@meta.data$Subclustering_12)]),
+          features = rownames(pbmc),group.by = "Subclustering_12",
+          size = 2) + NoLegend() + ggplot2::ggtitle("cluster12 Protein markers") + scale_fill_viridis()
+
+DefaultAssay(pbmc) <- "rna.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(ScaleData(subset(x = pbmc, #downsample = 100,
+                           cells = colnames(pbmc)[grepl("12_",pbmc@meta.data$Subclustering_12)])),
+          features = conserved.markers1$gene, assay = "rna.CCA",label = T,group.by = "Subclustering_12") + NoLegend() + ggplot2::ggtitle("mRNA markers") + scale_fill_gradientn(colours = rev(mapal)) + theme(text = element_text(size = 6))
+
+```
+
+#### Subclustering of cluster 15
+```{r}
+Idents(pbmc) <- "wsnn_res.0.8"
+
+pbmc <- FindSubCluster(pbmc,cluster=15,subcluster.name = "Subclustering_15",graph.name = "wsnn",algorithm = 3,resolution = 0.2)
+```
+
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "adt.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(subset(x = pbmc, #downsample = 100,
+                 cells = colnames(pbmc)[grepl("15_",pbmc@meta.data$Subclustering_15)]),
+          features = rownames(pbmc),group.by = "Subclustering_15",
+          size = 2) + NoLegend() + ggplot2::ggtitle("cluster15 Protein markers") + scale_fill_viridis()
+
+DefaultAssay(pbmc) <- "rna.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+DoHeatmap(ScaleData(subset(x = pbmc, #downsample = 100,
+                           cells = colnames(pbmc)[grepl("15_",pbmc@meta.data$Subclustering_15)])),
+          features = conserved.markers1$gene,
+          assay = "rna.CCA",label = T,group.by = "Subclustering_15") + NoLegend() + ggplot2::ggtitle("mRNA markers") + scale_fill_gradientn(colours = rev(mapal)) + theme(text = element_text(size = 6))
+```
+
+### DEG for all clusters
+```{r}
+Idents(pbmc) <- "wsnn_res.0.8"
+all.adt.markers <- FindAllMarkers(pbmc,assay="adt.CCA")
+all.rna.markers <- FindAllMarkers(pbmc,assay="rna.CCA")
+
+## pvalues don't matter here, fold-change is sufficient for identification
+adt.markers <- all.adt.markers %>%
+  group_by(cluster) %>%
+  top_n(n = 5, wt = abs(avg_log2FC)) %>% ungroup()
+
+rna.markers <- all.rna.markers %>%
+  group_by(cluster) %>%
+  top_n(n = 5, wt = abs(avg_log2FC)) %>% ungroup()
+```
+
+
+### Level 1 transcriptome CD4+ and CD8+ T cells
+```{r message=FALSE, warning=FALSE}
+## ADT
+DefaultAssay(pbmc) <- "rna.CCA"#"RNA.CCA"
+# Downsample the number of cells per identity class
+ DoHeatmap(subset(x = pbmc, #downsample = 100,
+                 cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("CD4+ T")]),
+          features = rna.markers$gene, group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("CD4+ T cells mRNA markers") + scale_fill_gradientn(colours = rev(mapal)) + theme(text = element_text(size = 6))
+
+DoHeatmap(subset(x = pbmc, #downsample = 100,
+                 cells = colnames(pbmc)[pbmc@meta.data$CellType_L1 %in% c("CD8+ T")]),
+          features = rna.markers$gene, group.by = "wsnn_res.0.8num",
+          size = 2) + NoLegend() + ggplot2::ggtitle("CD8+ T cells mRNA markers") + scale_fill_gradientn(colours = rev(mapal)) + theme(text = element_text(size = 6))
+```
+
+## Level 2 Cell type
+
+30 Level 2 annotation categories representing well-described subtypes of human immune cells: CD4+ T Naive, CD4+ T Central Memory (TCM), CD4+ T Effector Memory (TEM), CD8+ TEM, etc., all thirty subtypes are listed at https://azimuth.hubmapconsortium.org/).
+
+```{r message=FALSE, warning=FALSE, fig.asp=0.5}
+l2.cluster.ids <- c("0" = "CD14+ monocytes",# S100A12,TGFBI, CD36 classical mono, TGFBI classical/non-classical
+                    "1" = "NK1",
+                    "2" = "CD4+ T naive",#"CD4 CD45RA, CD27, CD197", #	LEF1 naive? CCR7 naive, PIK3IP1 naive
+                    "3" = "NK2",
+                    "4" = "CD4+ Tfh", ## CD4, CXCR5+, CD27 but CD45RA neg -> central memory cells #,"CD4 CD27 CXCR5"
+                    "5" = "CD4+ T central memory",#"CD4 CD27 CD25/CD197",#  CD25 is IL2R or something, CD27, CCR7, low CD45RA -> central memory
+                    "6" = "CD4+ T transitional memory", # noCCR7 -> effector,
+                    "7" = "CD16+ monocytes",#SLC7A7 non-classical, CXCL16 non-classical,C1QA intermediate/non-classical# ## non classical monocytes; low CD14, high CD16, CD11c+ HLADR+, CD123 medium
+                    "8" = "CD8+ T naive",#"CD8 CD197 CD27 CD45RA", ## similar to CD4 cluster 2
+                    "9" = "CD8+ T effector memory",
+                    "10" = "CD8+ T transitional memory",
+                    "11" = "Vd2+ gdT",
+                    "12" = "undefined",
+                    "13" = "CD8+ NKT", ## CD56 #CD8, CD56 should express Valpha24 mrna?
+                    "14" = "CD14+ monocytes",
+                    "15" = "CD4+ T activated effector", #KIAA0101 memory treg? TOP2A treg,TYMS memory treg
+                    "16" = "B memory", # CD80+, , #https://www.nature.com/articles/ni.2914
+                    "17" = "CD4+ T transitional memory", #HLADR-
+                    "18" = "B Naive", #CD27-
+                    "19" = "CD4+ T regulatory CD80-",
+                    "20" = "NK3",
+                    "21" = "Vd2- gdT",
+                    "22" = "CD4+ T regulatory CD80+", # Treg
+                    "23" = "NK4",
+                    "24" = "CD4+ T effector memory",
+                    "25" = "mDC",#"DC CD123 HLADR CD11c", CD34− HLA−DR+ CD123low CD11c+
+                    "26" = "CD8+ Tfh", ## "CD8 cd27 cxcr5", CD8+, CXCR5+,CD80+(co-stimmulatory moleucle for Tcells) CD27 but CD45RA neg -> central memory (check mrna SELL/CD62L/L-Selectin) - CD27/CX3/CR1/SELL/CD28 gerlach nomenclature for tcell subcells# similar to cd4 cluster 4 # GZMK Memory CD4 T-cell Th1/Th17
+                    "27" = "CD14+ monocytes",
+                    "28" = "pDC",
+                    "29" = "Plasma cells", # CD27+
+                    "30" = "CD4+ T naive",
+                    "31" = "CD4+ T naive"#,#"CD4 CD45RA, CD27, CD197",
+                    #"32" = "undefined"
+                    )
+Idents(pbmc) <- "wsnn_res.0.8"
+l2.cluster.ids.colors <- randomcoloR::distinctColorPalette(length(l2.cluster.ids))
+names(l2.cluster.ids.colors) <- l2.cluster.ids
+
+pbmc <- RenameIdents(pbmc, l2.cluster.ids)
+pbmc$CellType_L2 <- Idents(pbmc)
+
+Idents(pbmc) <- "wsnn_res.0.8"
+DimPlot(pbmc, reduction = "wnn.umap",cols = l2.cluster.ids.colors,
+        group.by = "CellType_L2", repel = T,label = T, pt.size = 0.75)
+```
+
+#### Reordering/Data wrangling
+```{r}
+pbmc$CellType_L2B <- paste0(pbmc$wsnn_res.0.8num,": ",pbmc$CellType_L2)
+pbmc@meta.data %>% select(CellType_L2,CellType_L2B)
+
+pbmc <- AddMetaData(pbmc, pbmc@meta.data %>%
+  rownames_to_column("CellID") %>%
+  arrange(CellType_L1, wsnn_res.0.8num) %>%               # sort your dataframe
+  mutate(CellType_L2B = factor(CellType_L2B, unique(CellType_L2B)),
+         CellType_L2 = factor(CellType_L2, unique(CellType_L2))) %>% # reset your factor-column based on that order
+  #mutate(CellType_L2num = as.numeric(CellType_L2)-1) %>%
+  column_to_rownames("CellID"))
+
+#pbmc@meta.data <- pbmc@meta.data %>%
+#  rownames_to_column("CellID") %>%
+#  arrange(CellType_L1, wsnn_res.0.8num) %>%               # sort your dataframe
+#  mutate(CellType_L2B = factor(CellType_L2B, unique(CellType_L2B)),
+#         CellType_L2 = factor(CellType_L2, unique(CellType_L2))) %>% # reset your factor-column based on that order
+#  #mutate(CellType_L2num = as.numeric(CellType_L2)-1) %>%
+#  column_to_rownames("CellID")
+
+pbmc@meta.data %>% select(CellType_L2,CellType_L2B)
+
+```
+#### UMAP plotting
+```{r fig.asp=0.5}
+Idents(pbmc) <- "wsnn_res.0.8"
+
+plot1 <- DimPlot(pbmc, reduction = "wnn.umap", group.by = "CellType_L2",cols = l2.cluster.ids.colors, repel = T, label = F,pt.size = 0.1) +
+  #NoLegend() +
+  labs(title = "Immune landscape")
+
+LabelClusters(plot1, id = "CellType_L2", color = unique(ggplot_build(plot1)$data[[1]]$colour), size = 2, repel = T,  box.padding = 1,max.overlaps=100)
+
+```
+
+```{r }
+Idents(pbmc) <- "wsnn_res.0.8"
+
+plot1 <- DimPlot(pbmc, reduction = "wnn.umap", group.by = "CellType_L2",cols = l2.cluster.ids.colors, repel = T, label = F,pt.size = 0.1) +
+  NoLegend() +
+  labs(title = "Immune landscape")
+
+LabelClusters(plot1, id = "CellType_L2", color = unique(ggplot_build(plot1)$data[[1]]$colour), size = 2, repel = T,  box.padding = 1,max.overlaps=100)
+```
+```{r }
+Idents(pbmc) <- "wsnn_res.0.8"
+
+plot1 <- DimPlot(pbmc, reduction = "wnn.umap", group.by = "CellType_L2", repel = T, label = F,pt.size = 0.1) +
+  NoLegend() +
+  labs(title = "Immune landscape")
+
+LabelClusters(plot1, id = "CellType_L2", color = "black", size = 2.5, repel = T,  box.padding = 1,max.overlaps=100)
+```
+
+### alternative (ggplot2) UMAP
+
+```{r message=FALSE, warning=FALSE}
+umap_data_ggplot <- data.table(pbmc@meta.data,
+                               Embeddings(object = pbmc, reduction = 'wnn.umap')) %>%
+  rownames_to_column("CellID") %>%
+  arrange(CellType_L1, wsnn_res.0.8num) %>%               # sort your dataframe
+  mutate(CellType_L2B = factor(CellType_L2B, unique(CellType_L2B)),
+         CellType_L2 = factor(CellType_L2, unique(CellType_L2))) # reset your factor-column based on that order
+
+plot_UMAP <- ggplot(umap_data_ggplot %>%arrange(sample(x = CellID, replace = FALSE)), ## arrange(CellType_L1,wsnn_res.0.8num) %>%
+                    aes(x = wnnUMAP_1, y = wnnUMAP_2)) +
+  theme(axis.text = element_blank(), axis.ticks = element_blank())
+
+#- Batch
+plot_UMAP + geom_point(aes(color = as.character(orig.ident)), size = 0.1) +
+  labs(x = 'UMAP 1', y = 'UMAP 2',subtitle = "Sample") + scale_color_discrete(guide = FALSE) + theme_cowplot() #theme_minimal()
+
+#- Time
+plot_UMAP + geom_point(aes(color = as.character(Time)), size = 0.1) +
+  labs(x = 'UMAP 1', y = 'UMAP 2',subtitle = "Sample Time Point") + scale_color_discrete(guide = FALSE) + theme_cowplot()
+
+#- Batch per Time
+plot_UMAP + geom_point(aes(color = as.character(Library)), size = 0.1) +
+  labs(x = 'UMAP 1', y = 'UMAP 2',subtitle = "Patient") + scale_color_discrete(guide = FALSE) + facet_grid(~Time) +theme_cowplot()
+```
+
+### In-silico bulk analysis
+* on CCA integrated data
+* per Timepoint, Group
+
+```{r fig.asp=0.5}
+DefaultAssay(pbmc) <- "rna.CCA"
+# How can I calculate expression averages separately for each replicate?
+cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE, group.by = c("Time","Group"))
+
+# You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between
+# replicates
+DoHeatmap(cluster.averages, features = rna.markers$gene, size = 3, draw.lines = FALSE)
+
+DefaultAssay(pbmc) <- "adt.CCA"
+# How can I calculate expression averages separately for each replicate?
+cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE,group.by = c("Time","Group"))
+
+# You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between
+# replicates
+DoHeatmap(cluster.averages, features = unique(adt.markers$gene), size = 3, draw.lines = FALSE)
+```
+
+* on un-integrated data
+* per Timepoint, Group
+
+```{r}
+DefaultAssay(pbmc) <- "RNA"
+# How can I calculate expression averages separately for each replicate?
+cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE,group.by = c("Time","Group"))
+
+# You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between
+# replicates
+DoHeatmap(cluster.averages, features = rna.markers$gene, size = 3,
+    draw.lines = FALSE)
+
+DefaultAssay(pbmc) <- "ADT"
+# How can I calculate expression averages separately for each replicate?
+cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE,group.by = c("Time","Group"),)
+
+# You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between
+# replicates
+DoHeatmap(cluster.averages, features = unique(adt.markers$gene), size = 3,
+    draw.lines = FALSE)
+```
+
+# Final data
+```{r}
+pbmc.final <- pbmc
+```
+
+
+#### Sanity check
+```{r}
+Idents(pbmc.final) <- "CellType_L2"
+
+VlnPlot(object = pbmc.final, features = "CD16",assay = "ADT", split.by = 'CellType_L2',pt.size = 0.01,cols = l2.cluster.ids.colors) + NoLegend() + labs(subtitle = "Protein level")
+VlnPlot(object = pbmc.final, features = "CD1C",assay = "RNA", split.by = 'CellType_L2',pt.size = 0.1,cols = l2.cluster.ids.colors) + NoLegend() + labs(subtitle = "mRNA level")
+```
+
+
+
+```{r fig.asp=0.5}
+# Dot plots - the size of the dot corresponds to the percentage of cells expressing the
+# feature in each cluster. The color represents the average expression level
+DotPlot(pbmc.final,features = rownames(pbmc.final@assays$ADT),assay = "ADT") + RotatedAxis()
+```
+
+
+
+## Mait cell check
+* markers from tobi
+
+```{r}
+mait.markers <- c("TRAV1","TRAV-2","DPP4","SLC4A10","CD161","IL18R","IL7R")
+##ccr5 positiv men ccr7 negativ
+tibble(genes = rownames(pbmc@assays$RNA)) %>% filter(genes %in% mait.markers)
+```
+
+```{r}
+VlnPlot(object = pbmc.final, features = "IL7R", assay = "RNA", split.by = 'CellType_L2',pt.size = 0.1,cols = l2.cluster.ids.colors,ncol = 1) + NoLegend()
+VlnPlot(object = pbmc.final, features = "DPP4", assay = "RNA", split.by = 'CellType_L2',pt.size = 0.1,cols = l2.cluster.ids.colors,ncol = 1) + NoLegend()
+
+```
+
+```{r}
+FeaturePlot(subset(x = pbmc.final,
+                   cells = colnames(pbmc.final)[pbmc.final@meta.data$CellType_L2 %in% c("CD8+ CD127 CD27","CD4+ mix","CD4+ T naive")]),
+            reduction = "wnn.umap",
+            #split.by = "Time",
+            features = c("rna_CCR5","rna_CCR7",mait.markers,"rna_GZMB"),
+            order = T,
+            pt.size = 0.2,
+            #slot = "data",
+            combine = T)
+
+VlnPlot(subset(x = pbmc.final,
+               cells = colnames(pbmc.final)[pbmc.final@meta.data$CellType_L2 %in% c("CD8+ CD127 CD27","CD4+ mix","CD4+ T naive")]),
+        #split.by = "Time",
+        features = c("rna_CCR5","rna_CCR7",mait.markers,"rna_GZMB"),
+        assay = "rna.CCA",
+        split.by = 'CellType_L2',
+        pt.size = 1,
+        cols = l2.cluster.ids.colors,
+        ncol = 5) + NoLegend()
+
+```
+
+
+
+
+```{r}
+##save seurat object
+#saveRDS(pbmc.final, paste0("../../data/SeuratObjects/",Sys.Date(),"AbSeq_Cell_Calling_qc_cca_wnn_clustering_annotated.rds"))
+saveRDS(pbmc.final, "../../data/data/rhapsody/AbSeq_Cell_Calling_qc_cca_wnn_clustering_annotated.rds")
+```

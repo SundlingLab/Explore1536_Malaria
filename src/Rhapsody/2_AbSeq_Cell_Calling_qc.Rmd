@@ -1,0 +1,151 @@
+---
+title: "Quality control on 4 libraries, preprocessed with AbSeq/Cell calling pipeline"
+author: "Julius Lautenbach"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    highlight: pygments
+abstract: A script to generate a Seurat object from Rhapsody output.
+knit: (function(inputFile, encoding) {
+          rmarkdown::render(inputFile,
+                            encoding = encoding, 
+                            output_file = paste0(
+                              xfun::sans_ext(inputFile), '_', Sys.Date(), '.html'),
+                                output_dir = "../results/lab_book/")})
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(echo = TRUE, 
+                     #root.dir = getwd(), 
+                     fig.width = 6, fig.height = 5, warning = FALSE, message = FALSE)
+
+#result.dir <- paste0("results/",Sys.Date(),"/")
+
+## creates result.dir with date in if not existent
+#ifelse(isFALSE(dir.exists(paste0("../",result.dir))), dir.create(paste0("../",result.dir),recursive = TRUE),"Result directory for today exists already!")
+#options(stringsAsFactors = FALSE) 
+```
+
+
+# Libraries
+```{r message = FALSE}
+library(tidyverse)
+library(data.table)
+library(Seurat)
+library(patchwork)
+library(randomcoloR)
+#source("src/helper_fun.R")
+#install.packages("clustree")
+library(clustree) ## see https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html for explanation
+mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
+```
+
+## change color
+```{r}
+ENDEMIC_colors <- c("#F1A340", "#998EC3")
+names(ENDEMIC_colors) <- c("previously","primary")
+```
+
+## Load Seurat Object
+* Seurat object containing 12 samples, from 4 libraries
+* Doublets and undetermined cells, determined by BD SevenBridges pipline, were removed
+* Only cells with "min.cells = 3" and "min.features = 10" on RNA level were inclued
+
+```{r message=F}
+data.raw <- readRDS("../../data/RhapsodyCountFiles/temp/AbSeqCellCalling_MalariaTraveller_RhapsodyLibraries_SeuratObeject.rds")# AbSeqCellCalling_MalariaTraveller_RhapsodyLibraries_SeuratObeject.rds")#RhapsodyCountFiles/temp/2023-12-22AbSeqCellCalling_MalariaTraveller_RhapsodyLibraries_SeuratObeject.rds")#data/SeuratObjects/2021-09-21_AbseqCellCall_MalariaTraveller_RhapsodyLibraries_SeuratObeject.rds")
+
+# Load and add BD pipeline determined cell types
+cell_type_exp <- read_csv("../../data/RhapsodyCountFiles/temp/AbSeqCellCalling_MalariaTraveller_RhapsodyLibraries_CellTypeExperimental.csv")#1_AbseqCellCall_MalariaTraveller_RhapsodyLibraries_CellTypeExperimental.csv")
+
+colOrd <- rownames(FetchData(data.raw,"ident"))
+RcolData <- cell_type_exp %>% dplyr::slice(match(colOrd, Cell_ID))
+
+#Add to metadata 
+data.raw@meta.data <- bind_cols(data.raw@meta.data, RcolData$Cell_Type_Experimental) %>% rename(Cell_Type_Experimental = "...10")
+```
+
+### Cell numbers per sample
+
+```{r}
+data.raw@meta.data %>%
+  as.data.table %>% # the resulting md object has one "row" per cell
+  rownames_to_column("Cell-ID") %>% 
+  group_by(orig.ident,Group,Time) %>% 
+  dplyr::count() %>% 
+  ggplot(aes(x=orig.ident,y=n, fill=Group)) +
+  coord_flip()+
+  geom_col() +
+  geom_hline(yintercept = 6000) +
+  geom_text(aes(label = Time), hjust =1.5) + 
+  geom_text(aes(label = n), hjust =5) + 
+  scale_fill_manual(values = ENDEMIC_colors) + labs(title = "Unfiltered raw data")
+```
+
+
+##
+```{r}
+dim(data.raw)
+```
+
+## QC
+```{r}
+data.raw <- subset(x = data.raw, cells = setdiff(colnames(data.raw), rownames(data.raw@meta.data)[which(data.raw@meta.data$nCount_RNA > 2000 & data.raw@meta.data$nFeature_RNA < 100)]))
+data.raw <- subset(x = data.raw, cells = setdiff(colnames(data.raw), rownames(data.raw@meta.data)[which(data.raw@meta.data$nCount_RNA > 4000)])) 
+dim(data.raw) # 374 genes across 73,121 cells 
+```
+```{r}
+DefaultAssay(data.raw) <- "ADT"
+dim(data.raw) 
+```
+
+## Uncorrected data
+```{r}
+data.uncorrected <- data.raw
+rm(data.raw) ## remove raw data object to save memory
+```
+
+### Cell numbers per sample
+
+```{r}
+data.uncorrected@meta.data %>%
+  as.data.table %>% # the resulting md object has one "row" per cell
+  rownames_to_column("Cell-ID") %>% 
+  group_by(orig.ident,Group,Time) %>% 
+  dplyr::count() %>% 
+  ggplot(aes(x=orig.ident,y=n, fill=Group)) +
+  coord_flip()+
+  geom_col() +
+  geom_hline(yintercept = 6000) +
+  geom_text(aes(label = Time), hjust =1.5) + 
+  geom_text(aes(label = n), hjust =5) + 
+  scale_fill_manual(values = ENDEMIC_colors)  + labs(title = "Filtered raw data")
+```
+
+```{r}
+data.uncorrected@meta.data %>%
+  as.data.table %>% # the resulting md object has one "row" per cell
+  rownames_to_column("Cell-ID")  %>% 
+  group_by(Group,Time) %>% 
+  dplyr::count() %>% 
+  ggplot(aes(x=Group,y=n, fill=Time)) +
+  coord_flip()+
+  geom_bar(stat="identity", position="dodge") +
+  geom_hline(yintercept = 12000) +
+  scale_fill_manual(values=TIME_colors) +
+  labs(x="Exposure group",
+       y="Total number of cells",
+       title = "Cumulative number of cells per group",
+       caption = "planned #: 12.000 cells") 
+```
+
+
+```{r}
+saveRDS(data.uncorrected, paste0("../../data/RhapsodyCountFiles/temp/","AbSeq_Cell_Calling_qc.rds"))
+```
+
