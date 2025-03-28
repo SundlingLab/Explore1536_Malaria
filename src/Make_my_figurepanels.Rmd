@@ -49,8 +49,9 @@ wrap_elements(full = cohort_fig) +
 
   ## D
   wrap_elements(full = fig1.list$timepoint_exposure + theme_a4_pdf + theme(legend.box.spacing = unit(0, "pt"),
-                                                                                axis.text.y = element_blank(),
-                                                                                axis.title.y = element_blank()) +
+                                                                           #     axis.text.y = element_blank(),
+                                                                            #    axis.title.y = element_blank()
+                                                                           ) +
                   guides(fill = guide_legend(ncol = 1))) + 
               
   wrap_elements(full= pca_fig1 + 
@@ -84,7 +85,7 @@ dev.off()
 ```
 
 
-```{r Figure1-wo-annotation, fig.height=9, message=FALSE, warning=FALSE, dev= c("png","pdf"), out.width='100%'}
+```{r Figure1-wo-annotation, eval=FALSE, fig.height=9, message=FALSE, warning=FALSE, dev=c("png","pdf"), include=FALSE, out.width='100%'}
 pdf(paste0(result.dir,"Figure_1_old.pdf"), width = 6.9, height = 9)#,paper = "a4",colormodel = my_pdf_colormodel) 
 
 cohort_fig <- ggplot2::ggplot() +
@@ -300,8 +301,7 @@ dev.off()
 -   potential tissue leakage - Resource
 
 ```{r Figure2-S3,fig.height=7,dev = c("png","pdf"), out.width='100%'}
-
-pdf(paste0(result.dir,"Figure_2_S4.pdf"), width = 6.9, height = 7)#,paper = "a4",colormodel = my_pdf_colormodel)
+pdf(paste0(result.dir,"Figure_2_S4.pdf"), width = 6.9, height = 8)#,paper = "a4",colormodel = my_pdf_colormodel) height=7
 
 layout <- "
 AAACC
@@ -309,6 +309,7 @@ AAACC
 BBBCC
 BBBCC
 DDDDD
+EEE##
 "
 
 ## A
@@ -319,6 +320,8 @@ wrap_elements(full = dap.origin.w.tl + theme_a4_pdf) +
   grid.grabExpr(draw(hm.tissue.leakage)) +#) + 
   ## D
   wrap_elements(full = tissue.leakage.violine + theme_a4_pdf + theme(legend.position = "none")) +
+  ## E
+  wrap_elements(full=agxt_hao1_alat_asat_cor + theme_a4_pdf) +
   
   patchwork::plot_layout(design = layout) +
   patchwork::plot_annotation(title = "Supplementary Figure 4 - Related to Figure 2") &

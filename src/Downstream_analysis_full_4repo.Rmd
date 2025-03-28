@@ -1,7 +1,7 @@
 ---
 title: "Integrated proteomics and single-cell transcriptomics reveal immune dynamics and severity markers in acute Plasmodium falciparum malaria"
 author: "Maximilian Julius Lautenbach"
-date: '2024-03-05'
+date: '2024-03-28'
 output:
    html_document:
      code_download: yes
@@ -426,7 +426,7 @@ assay_better_complex_model <- df_better_model %>% filter(eval=="BIC",
 
 plot(euler(
   list("acute_m12" = lme_res_padj %>% filter(FDR==T) %>% pull(Assay),
-       "bic_complex_better" = assay_better_complex_model)),#df_better_model %>% filter(eval=="BIC", better_model=="complex") %>% pull(Assay))),
+       "bic_complex_better" = assay_better_complex_model)),
   
         fills = c("#C51B7D",
                   "white"),
@@ -448,9 +448,7 @@ lme_res_padj %>%
 dap.res <- lme_res_padj %>% 
   dplyr::rename(logFC = estimate) %>% 
   mutate(direction = ifelse(logFC<0,"down","up"))  %>% 
-  dplyr::select(-c(lme.res.simple,lme.res.complex,lme.complex.tidy)) %>% 
-  ## remove assays that would require a complex model
-   filter(!Assay %in% assay_better_complex_model)
+  dplyr::select(-c(lme.res.simple,lme.res.complex,lme.complex.tidy))
 ```
 
 
@@ -472,11 +470,10 @@ dap.res <- lme_res_padj %>%
                             point.padding = unit(0.5, "lines"),
                             segment.color = 'grey50') +
    
-   geom_vline(xintercept = c(-1, 1), linetype = "dotted", size = .5) +
-   geom_hline(yintercept = -log10(0.01), linetype = "dotted", size = .5) + 
-   #scale_x_continuous(breaks=c(-5.0,-2.5,-1.0,0.0,1.0,2.5,5.0,7.5),limits = c(-5,7.5)) +
-      scale_x_continuous(breaks=c(-4.0,-3.0,-2.0,-1.0,0.0,1.0,2.0,3.0,4.0,5.0,6.0),limits = c(-4,6)) +
-
+   geom_vline(xintercept = c(-1, 1), linetype = "dotted", linewidth = .5) +
+   geom_hline(yintercept = -log10(0.01), linetype = "dotted", linewidth = .5) + 
+   scale_x_continuous(breaks=c(-4.0,-3.0,-2.0,-1.0,0.0,1.0,2.0,3.0,4.0,5.0,6.0),limits = c(-4,6)) +
+   
    geom_segment(aes(x = 1.1, y = 21, xend = 4, yend = 21), color=time3_col[[1]], #y=16.5
                 arrow = arrow(length = unit(0.2, "cm"))) +
    annotate("text",x=2.6, y=22.5, size=2, label="High abundant\nin acute malaria") + #y=17.6
@@ -500,13 +497,15 @@ hm.input <- data.wide %>%
   inner_join(sampleTable_simple %>% dplyr::select(DAid,study_id, sample_id, Time),by="sample_id") %>% 
   dplyr::filter(Time=="Acute")
 
-top25 <- dap.res %>% dplyr::filter(FDR==TRUE) %>%
+top25 <- dap.res %>% 
+  dplyr::filter(FDR==TRUE) %>%
   arrange(desc(abs(logFC)),desc(p.adj)) %>%
   mutate(up_down = ifelse(logFC>0,"up","down")) %>% 
   dplyr::group_by(up_down) %>% 
   slice_head(n=25)
 
-top25.split <- top25 %>% column_to_rownames("Assay") %>% transmute(direction = factor(direction, levels = c("up","down"), labels = c("high","low")))
+top25.split <- top25 %>% column_to_rownames("Assay") %>% 
+  transmute(direction = factor(direction, levels = c("up","down"), labels = c("high","low")))
 
 norm.df <- hm.input %>% column_to_rownames("sample_id") %>% 
   dplyr::select(-c(DAid,Time,study_id)) %>% 
@@ -522,11 +521,12 @@ norm.df <- hm.input %>% column_to_rownames("sample_id") %>%
             
             top_annotation = HeatmapAnnotation(df = data.frame(sample_id = colnames(.)) %>%
                                                  separate(sample_id, into = c("study_id","Time"),sep="\\|") %>% 
-                                                 left_join(subjectTable %>% transmute(study_id,
-                                                                                      endemic = factor(case_when(endemic=="primary_infected"~"primary",
-                                                                                                          endemic=="previously_exposed"~"previously",
-                                                                                                          .default=NA),levels=c("primary","previously")),
-                                                                                      severe_5 = ifelse(severe_5==1,"yes","no"))) %>%
+                                                 left_join(subjectTable %>% 
+                                                             transmute(study_id,
+                                                                       endemic = factor(case_when(endemic=="primary_infected"~"primary",
+                                                                                                  endemic=="previously_exposed"~"previously",
+                                                                                                  .default=NA),levels=c("primary","previously")),
+                                                                       severe_5 = ifelse(severe_5==1,"yes","no"))) %>%
                                                  dplyr::select(-study_id,-Time),
                                                simple_anno_size = unit(2, "mm"),
                                                show_annotation_name = F,
@@ -670,13 +670,17 @@ daps.out <- lme_res_padj %>%
             t.ratio,
             p.value, 
             p.adj,
-            preffered_model = case_when(Assay %in% assay_better_complex_model ~ "complex",
+            preferred_model = case_when(Assay %in% assay_better_complex_model ~ "complex",
                                         .default = "simple"))
 #daps.out%>%  write_tsv(paste0(result.dir,"Supplementary_TableS2_DifferentiallyAbundantProteins.tsv"))
-daps.out %>% head()
+daps.out #%>% head()
+```
+```{r}
+daps.out %>% filter(p.adj <=0.01, preferred_model=="simple", estimate<=-1)
 ```
 
-## Supplementary Figure 1
+
+comp## Supplementary Figure 1
 ### Figure S1A
 
 ```{r}
@@ -774,7 +778,7 @@ hm_mat <- tmp %>%
                 width=.2,
                 alpha=.1) +
     geom_point(alpha=0.7,size=.5, shape=16) +
-   geom_text_repel(aes(label=label_4_complex_better),#ifelse(Assay %in% assay_better_complex_model & color=="primay_infected",Assay,NA)),
+   geom_text_repel(aes(label=label_4_complex_better),
                     show.legend = F,
                    color="black",
                     vjust = .5,
@@ -897,6 +901,7 @@ supplementary_covariates.res_ <- supplementary_covariates.res %>%
                           term=="endemicprimary_infected"~"endemic",
                           term=="TimeM12"~"Time",
                           .default = term)) %>% 
+  group_by(term) %>% 
   mutate(p.adj = p.adjust(p.value, method="fdr")
   ) %>%
   mutate(term.col = case_when(p.adj > 0.01 ~ NA,
@@ -994,8 +999,8 @@ n2show <- 3
     facet_wrap(~Assay, scales = "free_y") +
     theme_minimal() +
     labs(title="",
-         x="Years",
-         color="Age") + 
+         x="Age (years)",
+         color="Sample time point") + 
     scale_color_manual(values = time3_col)
 )
 
@@ -1028,24 +1033,19 @@ n2show <- 3
 ### Figure S2C
 
 ```{r message=FALSE, warning=FALSE}
-
 lme_res.d10 <- data_nested %>% 
   mutate(lme.res = purrr::map(data, ~ lmerTest::lmer(NPX ~ Time + exposure + (1|study_id), REML = F,
                                            control = lme4::lmerControl(check.conv.singular = "ignore"),
                                            data = .x %>% dplyr::filter(Time!="Acute"))),
-         #lme.tidy = purrr::map(lme.res, ~ broom.mixed::tidy(.)),
-         posthoc.time = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time), method = "pairwise")) %>% tibble())#,
-         #posthoc.time_exposure = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time * exposure), method = "pairwise")) %>% tibble())
-         )
+         posthoc.time = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time), method = "pairwise")) %>% tibble())
+        )
 
 lme_res.d10_padj <- lme_res.d10 %>% 
   unnest(cols="posthoc.time") %>% 
   filter(contrast=="D10 - M12") %>% 
-  #filter(contrast=="Acute primary_infected - Acute previously_exposed") %>% 
   ungroup() %>% 
   mutate(p.adj = p.adjust(p.value, method="fdr"),
          FDR = ifelse(p.adj <= 0.01, TRUE,FALSE)) %>% 
-  #   dplyr::rename(logFC = estimate) %>% 
   arrange(p.adj)
 ```
 
@@ -1519,9 +1519,9 @@ mat1 <- mat %>%
 (tissue.leakage.violine <- data.long %>% 
    inner_join(sampleTable_simple %>% dplyr::select(DAid,Time,sample_id,study_id),
               by="sample_id") %>% 
-   dplyr::filter(Assay %in% c(malaria.tissue.leakage),#"DEFA1","DEFA1B"),
+   dplyr::filter(Assay %in% c(malaria.tissue.leakage),
                  Time!="D10") %>% 
-   mutate(Assay = factor(Assay, levels = c(malaria.tissue.leakage))) %>% #,"DEFA1","DEFA1B"))) %>% 
+   mutate(Assay = factor(Assay, levels = c(malaria.tissue.leakage))) %>% 
     ggplot(aes(x=Time, y=NPX, color=Time,fill=Time)) + 
     geom_line(aes(group=study_id), color="grey",alpha=.6,size=.2)+
     geom_violin(trim = F,alpha=.2,lwd=.25) +
@@ -1529,13 +1529,13 @@ mat1 <- mat %>%
     facet_wrap(~Assay,ncol = 9,scales = "free_y") +
     theme_minimal() +
     labs(x="") +
-    theme(axis.text.x = element_blank(),# element_text(size=6),
+    theme(axis.text.x = element_blank(),
           legend.position = "bottom") +
     scale_color_manual(values=time3_col) +
     scale_fill_manual(values=time3_col))
 ```
 
- Revision extra
+### Figure S4E
 
 ```{r}
 df <-  data.long %>% 
@@ -1548,45 +1548,23 @@ df <-  data.long %>%
   ) %>% 
   pivot_longer(names_to = "clinchem", values_to = "clinchem_val",cols = p_asat:p_alat)
 
-#cor.test.res <- tidy(cor.test(df$`CD19+ CD20+BAFF-R`,df$TNFSF13B,method = "spearman"))
-df %>% 
-  transmute(sample_id, Assay,NPX,clinchem,clinchem_val) %>% 
-  pivot_wider(names_from = Assay, values_from = NPX) %>%
-  pivot_wider(names_from = clinchem, values_from = clinchem_val) %>% 
-  column_to_rownames("sample_id") %>% 
-  correlation() %>% 
-  tibble() %>% 
-  filter(Parameter1!=Parameter2,
-         Parameter2!="HAO1")
-
 df %>% 
   ggplot(aes(x=NPX,y=clinchem_val)) +
   #geom_point(shape=16, size=.5) +
   geom_point() +
   geom_smooth(method="lm") +
   facet_grid(Assay~clinchem)
-  #scale_color_manual(values=endemic2_col)+
-  #annotate("text",
-  #         x=2,
-  #         y=7500,
-  #         size=1.5,
-  #         label=paste("\nrho: ",round(cor.test.res$estimate,2),
-  #                     "\np-value:",scales::scientific_format()(cor.test.res$p.value))) +
-  #labs(x="TNFSF13B [NPX]\nat Acute",
-   #    y="CD19+ CD20+BAFF-R [MFI]\nat Acute",
-    #   color=NULL))
 
 library(see)
-df %>% 
+(agxt_hao1_alat_asat_cor <- df %>% 
   transmute(sample_id, Assay,NPX,clinchem,clinchem_val) %>% 
   pivot_wider(names_from = Assay, values_from = NPX) %>%
   pivot_wider(names_from = clinchem, values_from = clinchem_val) %>% 
   column_to_rownames("sample_id") %>% 
-  correlation() %>% 
+  correlation(method = "spearman") %>% 
   summary() %>% 
   plot() +
-
-  theme(text = element_text(size=12))
+  theme(text = element_text(size=12)))
 ```
 
 
@@ -1724,7 +1702,6 @@ data4plot <- pcaDF %>%
 load seurat object & set colors
 ```{r message=FALSE, warning=FALSE}
 library(Seurat)
-#pbmc <- readRDS("../../MalariaTraveller_AbSeq/data/SeuratObjects/2021-12-17AbSeq_Cell_Calling_qc_cca_wnn_clustering_annotated.rds")
 #pbmc <- readRDS("../data/data/rhapsody/2021-12-17AbSeq_Cell_Calling_qc_cca_wnn_clustering_annotated.rds")
 pbmc <- readRDS("../data/data/rhapsody/MalariaTraveler_RhapsodyAbSeq_Cell_Calling_qc_cca_wnn_clustering_annotated.rds")
 
@@ -2943,7 +2920,6 @@ severesign_count <- who22_severemalaria %>%
 
 ### Figure S8D-E
 
-
 ```{r}
 data4_pcaRes_FCmedian <- fc_over_median_M12 %>% 
   filter(Assay %in% c(dap.res %>% filter(FDR==TRUE, abs(logFC)>1) %>% pull(Assay))) %>% 
@@ -2987,12 +2963,11 @@ df <- pcaDF_FCmedian %>%
   column_to_rownames("study_id") 
 
 set.seed(2023L)
-km <- kmeans(df, centers = 3, nstart = 25) 
+km <- kmeans(df, centers = 3, nstart = 25,iter.max = 100) 
 
 km.res <- data.frame(study_id = rownames(df)) %>% inner_join(data.frame(cluster = km$cluster) %>% rownames_to_column("study_id"), by="study_id") 
 
 ```
-
 
 
 ```{r}
@@ -3027,15 +3002,18 @@ acute.dnpx.ellbow
           column_km = 3,
           show_column_names = F,
           row_names_gp = gpar(fontsize=6),
-          row_dend_width = unit(3, "mm"), 
-          column_dend_height = unit(6,"mm"),
+          row_dend_width = unit(5, "mm"), 
+          column_dend_height = unit(5,"mm"),
           column_title_gp = gpar(fontsize = 6), 
           heatmap_legend_param = list(labels_gp = gpar(fontsize = 6),
                                       title_gp = gpar(fontsize = 6),
-                                      legend_height = unit(1, "mm"), 
+                                      legend_height = unit(5, "mm"), 
                                       title_position = "topcenter"))
 )
 ```
+
+
+
 
 ### Figure S8G
 ```{r}
@@ -3087,7 +3065,6 @@ my_comparisons_severe_conv <- list(c("severe", "moderate"), c("moderate", "mild"
 ```
 
 
-
 ## Figure 4A
 ```{r}
 (acute.dnpx.pca.clustered <- pcaDF_FCmedian %>% 
@@ -3134,8 +3111,39 @@ my_comparisons <- list(c("1", "2"), c("2", "3"), c("1", "3"))
     theme(legend.position ="none"))
 ```
 
+
+```{r eval=FALSE, include=FALSE}
+subjectTable %>% 
+    inner_join(patient_clust,by="study_id") %>% 
+  transmute(study_id,
+            endemic,
+            severe_5 = ifelse(severe_5==1,"yes","no"), 
+            severity_lab) %>% 
+  pivot_longer(cols = c(endemic,severe_5,severity_lab)) %>% 
+  mutate(name = factor(name, levels = c("endemic","severe_5","severity_lab"))) %>% 
+  mutate(value = factor(value, levels = c("previously_exposed","primary_infected","no","yes","severe","moderate","mild"))) %>% 
+  
+  left_join(patient_clust) %>% 
+    left_join(subjectTable %>% transmute(study_id, 
+                                               severe_5 = ifelse(severe_5==1,"yes","no"), 
+    )) %>% 
+  
+  ggplot(
+    aes(x = name,
+        #y = n,
+        stratum = value, 
+        alluvium = study_id,
+        label = value))+
+  geom_flow(aes(fill = severe_5)) +
+  geom_stratum(aes(fill = value),width = .4) +
+  scale_fill_manual(values = c(endemic2_col,c("yes"="tomato","no" = "grey80"),patient_kclust3_lab)) +
+  geom_text(stat = "stratum")+
+  theme_void() +
+  labs(fill=NULL)
+```
+
 ## Figure 4C
-```{r}
+```{r message=FALSE, warning=FALSE}
 prot.data.4.corr <- data.long %>%
   inner_join(dap.res,by=c("Assay", "UniProt")) %>% 
   filter(p.adj<=0.05,
@@ -3263,24 +3271,7 @@ clin.data.severity.groups.new
 ## Figure 4D
 
 ```{r message=FALSE, warning=FALSE}
-## nest data
-#data_nested <- data.long %>% 
-#  inner_join(sampleTable_simple, by="sample_id") %>% 
-#  left_join(subjectTable %>% transmute(study_id, 
-#                                       exposure = factor(endemic, levels=c("primary_infected","previously_exposed"))),
-#            by="study_id") %>% 
-#  group_by(UniProt,Assay) %>% 
-#  nest()
 
-#lme_res <- data_nested %>% 
-#  mutate(lme.res = purrr::map(data, ~ lmer(NPX ~ Time * exposure + (1|study_id), REML = F,
-#                                           data = .x %>% dplyr::filter(Time!="D10"))),
-#         lme.tidy = purrr::map(lme.res, ~ broom.mixed::tidy(.)),
-#         posthoc.time = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time), method = "pairwise")) %>% tibble()),
-#         posthoc.time_exposure = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time * exposure), method = "pairwise")) %>% tibble())
-#         )
-
-######
 data_nested.patclust <- data.long %>% 
   inner_join(sampleTable_simple, by="sample_id") %>% 
   inner_join(patient_clust,by="study_id") %>% 
@@ -3297,18 +3288,15 @@ g_vs_conv <- data_nested.patclust %>%
    mutate(lme.res = purrr::map(data, ~ lmer(NPX ~ Time * severity_lab + (1|study_id), REML = F,
                                            data = .x %>% dplyr::filter(Time!="D10"))),
          lme.tidy = purrr::map(lme.res, ~ broom.mixed::tidy(.)),
-         #posthoc.time = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time), method = "pairwise")) %>% tibble()),
          posthoc.time_exposure = purrr::map(lme.res, ~ summary(contrast(emmeans(., ~ Time * severity_lab), method = "pairwise")) %>% tibble())
          )
 
 g_vs_conv_padj <- g_vs_conv %>% 
   unnest(cols="posthoc.time_exposure") %>% 
-  #filter(contrast=="Acute severe - M12 severe") %>% 
   filter(contrast %in%c("Acute severe - M12 severe",
                         "Acute moderate - M12 moderate",
                         "Acute mild - M12 mild")) %>% 
       transmute(Assay, UniProt, contrast, estimate,SE,df,t.ratio,p.value) %>% 
-  #filter(contrast=="Acute primary_infected - Acute previously_exposed") %>% 
   ungroup() %>% 
     group_by(contrast) %>% 
   mutate(p.adj = p.adjust(p.value, method="fdr"),
@@ -3857,7 +3845,7 @@ module_specific_MM <- module_df %>%
   inner_join(gMM.tidy)
 ```
 
-## Supplementary Figur S8B
+## Supplementary Figur S9B
 ```{r}
 (turquoise_module_restrictions_density <- module_specific_MM %>% 
    mutate("-log10(pvalue)" = -log10(pvalue)) %>% 
@@ -3910,7 +3898,8 @@ data.frame(Assay = restricted_module_turquoise) %>%
 
 ```{r}
 ##Online reactome
-reactome_result<- read_delim("../Manuscript/20250226_restricted_module_turquoise_ReactomeORA_Result.txt") %>% janitor::clean_names()
+#reactome_result<- read_delim("../Manuscript/20250226_restricted_module_turquoise_ReactomeORA_Result.txt") %>% janitor::clean_names()
+reactome_result<- read_delim("../Manuscript/20250325_restricted_module_turquoise_ReactomeORA_Result.txt") %>% janitor::clean_names()
 
 
 (reactome_ora <- reactome_result %>% 
@@ -4275,7 +4264,7 @@ malaria.severity.siganture <- data.frame(splsda.data$loadings$X) %>%
   rownames_to_column("Assay") %>% 
   pivot_longer(names_to = "comp",values_to = "values",cols = -Assay) %>% 
   filter(values != 0,
-         comp %in% c("comp1")#,"comp2")
+         comp %in% c("comp1","comp2")
          )
 ```
 
@@ -4284,8 +4273,11 @@ malaria.severity.siganture <- data.frame(splsda.data$loadings$X) %>%
 my_comparisons_severe_conv <- list(c("severe", "moderate"), c("moderate", "mild"), c("severe", "mild"),c("mild","convalescence"))
 
 splsda.c1.top9 <- plsda_loadings.df %>% 
-  filter(comp=="comp1") %>% 
-  slice_min(n=9, order_by = values) %>% pull(Assay)# %>% 
+  #filter(comp=="comp1") %>% 
+  slice_max(n=9, order_by = abs(values)) %>% 
+  #arrange(comp) %>% 
+  #slice_min(n=9, order_by = values) %>% 
+    pull(Assay)# %>% 
 
 (splsda.c1.top9 <- df_acute_patclust_incl_conv %>% 
 
@@ -4316,12 +4308,6 @@ splsda.c1.top9 <- plsda_loadings.df %>%
 ```
 
 ```{r}
-###plsda.selection <- data.frame(splsda.data$loadings$X) %>% 
-#  rownames_to_column("Assay") %>% 
-#  pivot_longer(names_to = "comp",values_to = "values",cols = -Assay) %>% 
-#  filter(values != 0,
-#         comp %in% c("comp1","comp2")) %>% 
-#  pull(Assay)
 plsda.selection <- malaria.severity.siganture %>% pull(Assay)
 
 data.frame(Assay = plsda.selection) %>% 
@@ -4333,9 +4319,7 @@ data.frame(Assay = plsda.selection) %>%
 ## Figure 6D
 ```{r message=FALSE, warning=FALSE}
 ## Explore 1536 data set - MGH Covid-19 study, Filbin et al. 2021
-
 #### Make data ready
-
 # identify proteins with NPX below LOD in more than 70% of samples
 assays2rm <- covid_NPXdata %>% 
   mutate(belowLOD = LOD>NPX) %>% 
@@ -4376,9 +4360,7 @@ covid_NPXdata_mat <- covid_NPXdata_wide %>%
 
 ```{r}
 #### Run single sample gene set enrichment analysis
-
 library(GSVA)
-
 # run ssgsea on signature from sPLSDA
 GSE_results <- gsva(expr = covid_NPXdata_mat,
                     gset.idx.list = list(sig=plsda.selection),verbose=F,
@@ -5330,8 +5312,9 @@ sessionInfo()
 
 
 # Figure Panels
-
+includes also saving data for supplementary
 ```{r eval=FALSE}
+#eval=FALSE
 source_rmd <- function(rmd_file){
   knitr::knit(rmd_file, output = tempfile())
 }
@@ -5369,7 +5352,5 @@ qpdf::pdf_combine(
   output = "../Manuscript/Lautenbach_etal_supplementaryfigures.pdf"
 )
 ```
-```{r}
-sessionInfo()
-```
+
 
