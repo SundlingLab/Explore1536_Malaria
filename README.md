@@ -1,32 +1,18 @@
-# [Integrated proteomics and single-cell transcriptomics reveal immune dynamics and severity markers in acute *Plasmodium falciparum* malaria](insert-link-to-publication)
+# [Systems analysis of clinical malaria reveals proteomic perturbation and innate-adaptive crosstalk linked to disease severity](https://doi.org/10.1016/j.immuni.2025.06.014)
 
 Maximilian Julius Lautenbach, Katja Wyss, Victor Yman, Fariba Foroogh,
 Donya Satarvandi, Zaynab Mousavian, Klara Sondén, Jun Wang, María Bueno
 Álvez, Sofia Bergström, Peter Nilsson, Fredrik Edfors, Petter Brodin,
 Mathias Uhlén, Christopher Sundling & Anna Färnert
 
-![](./resources/graphical_abstract.png)
+![](./resources/Lautenbachetal2025_GraphicalAbstract_4_Immunity.png)
 
 ## Abstract
 
-Malaria can manifest as a spectrum of disease severity. To improve
-clinical management and prevention, it is crucial to understand the
-pathogenesis and host response. We analyzed 1,463 plasma proteins during
-and after acute *Plasmodium falciparum* malaria in adult travelers and
-linked responses to peripheral immune cells by integrating with
-single-cell RNA-seq data from a subset of donors. We identified
-significant perturbations in over 250 proteins with diverse origins,
-including many not previously analyzed in malaria patients, such as
-hormones, circulating receptors, and intracellular or membrane-bound
-proteins from affected tissues. The protein profiles clustered
-participants according to disease severity, which enabled us to identify
-a compressed 10-protein signature that was highly enriched in more
-severe malaria compared with mild malaria and other febrile infections.
-This unique resource, which also includes an interactive platform to
-explore the data, opens for new hypotheses, biomarker discovery, and
-potential drug target identification for malaria.
+Malaria presents with varying degrees of severity. To improve clinical management and prevention, it is crucial to understand the pathogenesis and host response. We analyzed 1,463 plasma proteins during and after acute *Plasmodium falciparum* malaria in adult travelers and linked responses to peripheral immune cells by integrating with single-cell RNA sequencing (RNA-seq) data from a subset of donors. We identified exten- sive perturbations in over 250 proteins with diverse origins, including many not previously analyzed in malaria patients, such as hormones, circulating receptors, and intracellular or membrane-bound proteins from affected tissues. The protein profiles clustered participants according to disease severity, enabling the iden- tification of a compressed 11-protein signature enriched in severe malaria. Conceptually, this study advances our understanding of malaria by linking systemic proteomic changes to immune cell communication and or- gan-specific responses. This resource, which includes an interactive platform to explore data, opens new av- enues for hypothesis generation, biomarker discovery, and therapeutic target identification.
 
-The original publication can be accessed here: [Lautenbach *et. al* JOURNAL 2025](https://google.com)
+
+The original publication can be accessed here: [Lautenbach *et. al* Immunity 2025](https://doi.org/10.1016/j.immuni.2025.06.014)
 
 ## Table of contents
 
