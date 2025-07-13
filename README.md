@@ -12,7 +12,7 @@ Mathias Uhlén, Christopher Sundling & Anna Färnert
 Malaria presents with varying degrees of severity. To improve clinical management and prevention, it is crucial to understand the pathogenesis and host response. We analyzed 1,463 plasma proteins during and after acute *Plasmodium falciparum* malaria in adult travelers and linked responses to peripheral immune cells by integrating with single-cell RNA sequencing (RNA-seq) data from a subset of donors. We identified exten- sive perturbations in over 250 proteins with diverse origins, including many not previously analyzed in malaria patients, such as hormones, circulating receptors, and intracellular or membrane-bound proteins from affected tissues. The protein profiles clustered participants according to disease severity, enabling the iden- tification of a compressed 11-protein signature enriched in severe malaria. Conceptually, this study advances our understanding of malaria by linking systemic proteomic changes to immune cell communication and or- gan-specific responses. This resource, which includes an interactive platform to explore data, opens new av- enues for hypothesis generation, biomarker discovery, and therapeutic target identification.
 
 
-The original publication can be accessed here: [Lautenbach *et. al* Immunity 2025](https://doi.org/10.1016/j.immuni.2025.06.014)
+The original publication can be accessed here: [Lautenbach *et al.* Immunity 2025](https://doi.org/10.1016/j.immuni.2025.06.014)
 
 ## Table of contents
 
